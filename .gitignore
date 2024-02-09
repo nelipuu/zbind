@@ -1,0 +1,11 @@
+node_modules/
+test/greet.ts
+dist/
+zig-*/
+package-lock.json
+*.node
+*.wasm
+*.lock
+*.log.*
+*.log
+*.tgz

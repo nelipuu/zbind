@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"declaration": true,
+		"esModuleInterop": true,
+		"module": "commonjs",
+		"outDir": "../dist",
+		"strict": true
+	},
+	"files": [
+		"generate.ts"
+	]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "zbind",
+  "version": "0.0.2",
+  "description": "Zig-TypeScript binding generator",
+  "author": "Juha Järvi",
+  "license": "0BSD",
+  "bin": {
+    "zbind": "./bin/zbind"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "prepare": "tsc -p src",
+    "test-napi": "zig build -Doptimize=ReleaseFast && zbind test/addon.node test/greet.ts && ./run test",
+    "test-wasm": "zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi && zbind test/addon.wasm test/greet.ts && ./run test",
+    "test": "tsc -p src && npm run test-napi && npm run test-wasm"
+  },
+  "devDependencies": {
+    "@oven/zig": "^0.12.0-dev.1286",
+    "@types/node": "^20.11.8",
+    "node-api-headers": "^1.1.0",
+    "typescript": "^5.3.3",
+    "zbind": "file:."
+  }
+}

@@ -1,0 +1,26 @@
+#!/usr/bin/env -S node --enable-source-maps --expose-gc
+
+var fs = require('fs');
+var ts = require('typescript');
+var ext = require.extensions;
+
+ext['.ts'] = ext['.tsx'] = function(module, key) {
+	module._compile(
+		ts.transpileModule(fs.readFileSync(key, 'utf-8').replace(/import.meta.url/g, "('file://' + __filename)"), {
+			fileName: key,
+			compilerOptions: {
+				esModuleInterop: true,
+				inlineSourceMap: true,
+				jsx: ts.JsxEmit.React,
+				jsxFactory: 'h',
+				jsxFragmentFactory: 'Fragment',
+				module: ts.ModuleKind.CommonJS,
+				target: ts.ScriptTarget.ES2018
+			}
+		}).outputText,
+		key
+	);
+};
+
+process.argv.splice(1, 1);
+require(require('path').resolve(process.argv[1]));
