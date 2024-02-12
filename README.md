@@ -19,6 +19,8 @@ comptime {
 }
 ```
 
+It exports a Zig function `hello`, callable from TypeScript. A wrapper function will be exported that receives a string pointer and length in memory shared between Zig and the JavaScript engine.
+
 Example TypeScript code [`src/index.ts`](example/src/index.ts) to call it:
 
 ```TypeScript
@@ -26,6 +28,8 @@ import { hello } from './greet.js';
 
 hello('World');
 ```
+
+The automatically generated TypeScript function will encode the string as UTF-8 in a buffer directly accessible by both languages.
 
 The Zig code requires a [`build.zig`](example/build.zig) script to compile it:
 
@@ -45,10 +49,13 @@ pub fn build(builder: *std.Build) !void {
 }
 ```
 
-Run these shell commands to compile the Zig code and generate TypeScript bindings:
+Typically only the path to `main` Zig entry point and output binary path and name need configuring. The `zbind.build` call returns a `std.build.Step.Compile` object for linking with other libraries if needed.
+
+Run these shell commands to install the Zig compiler, compile the code and generate TypeScript bindings:
 
 ```bash
-npm install --save zbind node-api-headers
+npm install --save zbind
+npm install --save-dev @oven/zig node-api-headers
 
 # For native
 zig build -Doptimize=ReleaseFast
@@ -58,3 +65,5 @@ npx zbind dist/addon.node src/greet.ts
 zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi
 npx zbind dist/addon.wasm src/greet.ts
 ```
+
+The commands compile the Zig code to a native or Wasm binary and then call a TypeScript-based tool to inspect it and generate wrapper functions in `src/greet.ts` with matching types and necessary marshaling.
