@@ -2,7 +2,7 @@
 
 `zbind` generates TypeScript bindings for calling Zig code compiled to native code or Wasm, in Node.js or Bun or browsers.
 
-Example Zig code `lib/main.zig`:
+Example Zig code [`lib/main.zig`](example/lib/main.zig):
 
 ```Zig
 const std = @import("std");
@@ -19,15 +19,15 @@ comptime {
 }
 ```
 
-Example TypeScript code `src/index.ts` to call it:
+Example TypeScript code [`src/index.ts`](example/src/index.ts) to call it:
 
 ```TypeScript
-import { hello } from './greet';
+import { hello } from './greet.js';
 
 hello('World');
 ```
 
-The Zig code requires a `build.zig` script to compile it:
+The Zig code requires a [`build.zig`](example/build.zig) script to compile it:
 
 ```Zig
 const std = @import("std");
