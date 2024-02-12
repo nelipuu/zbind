@@ -1,8 +1,10 @@
 node_modules/
+example/
 test/
 src/
 zig-*/
 package-lock.json
+.*
 *.node
 *.wasm
 *.lock
