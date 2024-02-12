@@ -1,0 +1,15 @@
+{
+  "name": "example",
+  "main": "index.js",
+  "license": "0BSD",
+  "scripts": {
+    "build-napi": "zig build -Doptimize=ReleaseFast && zbind dist/addon.node lib/greet.ts",
+    "build-wasm": "zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi && zbind dist/addon.wasm lib/greet.ts"
+  },
+  "dependencies": {
+    "zbind": "file:.."
+  },
+  "devDependencies": {
+    "node-api-headers": "^1.1.0"
+  }
+}
