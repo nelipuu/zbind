@@ -2,9 +2,10 @@
   "name": "example",
   "main": "index.js",
   "license": "0BSD",
+  "type": "module",
   "scripts": {
-    "build-napi": "zig build -Doptimize=ReleaseFast && zbind dist/addon.node lib/greet.ts",
-    "build-wasm": "zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi && zbind dist/addon.wasm lib/greet.ts"
+    "test-napi": "zig build -Doptimize=ReleaseFast && zbind dist/addon.node src/greet.ts && tsc -p src && node dist/index.js",
+    "test-wasm": "zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi && zbind dist/addon.wasm src/greet.ts && tsc -p src && node dist/index.js"
   },
   "dependencies": {
     "zbind": "file:.."

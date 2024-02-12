@@ -22,8 +22,7 @@ comptime {
 Example TypeScript code `src/index.ts` to call it:
 
 ```TypeScript
-import { resolve } from 'path';
-import { hello } from '../lib/greet';
+import { hello } from './greet';
 
 hello('World');
 ```
@@ -53,9 +52,9 @@ npm install --save zbind node-api-headers
 
 # For native
 zig build -Doptimize=ReleaseFast
-npx zbind dist/addon.node lib/greet.ts
+npx zbind dist/addon.node src/greet.ts
 
 # For Wasm
 zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi
-npx zbind dist/addon.wasm lib/greet.ts
+npx zbind dist/addon.wasm src/greet.ts
 ```

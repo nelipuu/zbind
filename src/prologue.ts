@@ -18,6 +18,12 @@ export const $decoder = new TextDecoder();
 const $encoder = new TextEncoder();
 const $intMagic = Math.pow(2, 52);
 
+class Slice {
+	toStack(top: number) {
+		// TODO
+	}
+}
+
 export function $create(source: BufferSource | string = $defaultPath()) {
 	let $getMemory: () => $Memory = () => {
 		$init();

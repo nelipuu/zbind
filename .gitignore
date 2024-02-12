@@ -1,5 +1,5 @@
 node_modules/
-example/lib/greet.ts
+example/src/greet.ts
 test/greet.ts
 dist/
 zig-*/

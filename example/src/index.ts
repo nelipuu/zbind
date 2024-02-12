@@ -1,4 +1,3 @@
-import { resolve } from 'path';
-import { hello } from '../lib/greet';
+import { hello } from './greet.js';
 
 hello('World');
