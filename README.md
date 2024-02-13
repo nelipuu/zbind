@@ -1,3 +1,5 @@
+![zbind](https://github.com/nelipuu/zbind/assets/778781/302eee21-1ff4-4e13-868b-05a71532fac9)
+
 # zbind
 
 `zbind` generates TypeScript bindings for calling Zig code compiled to native code or Wasm, in Node.js or Bun or browsers.
@@ -19,7 +21,7 @@ comptime {
 }
 ```
 
-It exports a Zig function `hello`, callable from TypeScript. A wrapper function will be exported that receives a string pointer and length in memory shared between Zig and the JavaScript engine.
+It exports a Zig function `hello`, callable from TypeScript. A wrapper function will be exported that receives a string pointer and length in memory shared between Zig and the JavaScript engine. The empty `main` is needed for compiling to Wasm.
 
 Example TypeScript code [`src/index.ts`](example/src/index.ts) to call it:
 
@@ -66,4 +68,4 @@ zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi
 npx zbind dist/addon.wasm src/greet.ts
 ```
 
-The commands compile the Zig code to a native or Wasm binary and then call a TypeScript-based tool to inspect it and generate wrapper functions in `src/greet.ts` with matching types and necessary marshaling.
+The commands compile the Zig code to a native or Wasm binary and then call a TypeScript-based tool to inspect it and generate wrapper functions in `src/greet.ts` with matching types and necessary marshalling.
