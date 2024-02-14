@@ -27,14 +27,21 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 	const optimize = builder.standardOptimizeOption(.{});
 	var lib: *std.Build.Step.Compile = undefined;
 
-	const zbind = builder.createModule(.{
+	const zbind = builder.createModule(if(@hasField(std.Build.Module, "root_source_file")) .{
 		.root_source_file = .{ //
 			.path = @src().file
 		},
 		.imports = &.{}
+	} else .{
+		.source_file = .{ //
+			.path = @src().file
+		},
+		.dependencies = &.{}
 	});
 
-	if(target.query.cpu_arch == .wasm32) {
+	const arch = (if(@hasField(@TypeOf(target), "cpu_arch")) target else target.query).cpu_arch;
+
+	if(arch == .wasm32) {
 		lib = builder.addExecutable(.{ //
 			.name = config.out_name,
 			.root_source_file = .{ .path = config.main },
@@ -44,7 +51,7 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 
 		lib.export_memory = true;
 		lib.export_table = true;
-		lib.root_module.export_symbol_names = &.{"init"};
+		(if(@hasField(@TypeOf(lib.*), "export_symbol_names")) lib else lib.root_module).export_symbol_names = &.{"init"};
 	} else {
 		lib = builder.addSharedLibrary(.{ //
 			.name = config.out_name,
@@ -53,12 +60,12 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 			.optimize = optimize
 		});
 
-		if(target.result.isDarwin()) lib.linker_allow_shlib_undefined = true;
+		if((if(@hasDecl(@TypeOf(target), "isDarwin")) target else target.result).isDarwin()) lib.linker_allow_shlib_undefined = true;
 
-		zbind.addIncludePath(.{ .path = try std.fs.path.resolve(builder.allocator, &.{ config.root, config.npm, "node-api-headers/include" }) });
+		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ .path = try std.fs.path.resolve(builder.allocator, &.{ config.root, config.npm, "node-api-headers/include" }) });
 	}
 
-	lib.root_module.addImport("zbind", zbind);
+	if(@hasDecl(@TypeOf(lib.*), "addModule")) lib.addModule("zbind", zbind) else lib.root_module.addImport("zbind", zbind);
 
 	lib.linkLibC();
 
@@ -68,7 +75,7 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 				.custom = try std.fs.path.relative(builder.allocator, builder.install_prefix, try std.fs.path.resolve(builder.allocator, &.{ config.root, config.out_dir }))
 			}
 		},
-		.dest_sub_path = try std.fmt.allocPrint(builder.allocator, "{s}{s}", .{ config.out_name, if(target.query.cpu_arch == .wasm32) ".wasm" else ".node" })
+		.dest_sub_path = try std.fmt.allocPrint(builder.allocator, "{s}{s}", .{ config.out_name, if(arch == .wasm32) ".wasm" else ".node" })
 	}).step);
 
 	return lib;
