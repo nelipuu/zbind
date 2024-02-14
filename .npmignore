@@ -1,7 +1,8 @@
 node_modules/
 example/
 test/
-src/
+src/**/*
+!src/prologue.ts
 zig-*/
 package-lock.json
 .*
