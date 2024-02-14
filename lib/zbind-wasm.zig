@@ -35,7 +35,7 @@ pub fn init(comptime API: type, base: [*c]u8) void {
 	mem.F64[2] = @floatFromInt(@intFromPtr(&Interface.getTypes));
 	mem.F64[3] = @floatFromInt(@intFromPtr(&Interface.getType));
 
-	comptime var methods = wrapper.getMethods(API, Caller);
+	const methods = comptime wrapper.getMethods(API, Caller);
 	mem.F64[4] = @floatFromInt(methods.len);
 
 	for(methods, 0..) |method, num| {

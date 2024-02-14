@@ -20,7 +20,7 @@ const Caller = struct {
 };
 
 fn emitFunctions(env: Env, wrappers: Value, comptime API: type) !void {
-	comptime var methods = wrapper.getMethods(API, Caller);
+	const methods = comptime wrapper.getMethods(API, Caller);
 	var value: Value = undefined;
 
 	for(methods, 0..) |method, num| {

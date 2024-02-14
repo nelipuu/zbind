@@ -96,7 +96,7 @@ pub fn getMethods(comptime API: type, comptime Caller: type) []const MethodTypes
 }
 
 pub fn emitTypes(comptime API: type, comptime Caller: type) void {
-	comptime var methods = getMethods(API, Caller);
+	const methods = comptime getMethods(API, Caller);
 	comptime var len = 1;
 
 	comptime for(methods) |method| {
