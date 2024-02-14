@@ -1,9 +1,17 @@
 {
   "name": "zbind",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Zig-TypeScript binding generator",
   "author": "Juha Järvi",
   "license": "0BSD",
+  "homepage": "https://github.com/nelipuu/zbind/#readme",
+  "bugs": {
+    "url": "https://github.com/nelipuu/zbind/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:nelipuu/zbind.git"
+  },
   "bin": {
     "zbind": "./bin/zbind"
   },
