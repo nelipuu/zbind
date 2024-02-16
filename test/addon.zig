@@ -9,6 +9,8 @@ fn Identity(comptime Type: type) type {
 }
 
 const API = struct {
+	pub const identity_bool = Identity(bool).call;
+
 	pub const identity_i8 = Identity(i8).call;
 	pub const identity_u8 = Identity(u8).call;
 	pub const identity_i16 = Identity(i16).call;

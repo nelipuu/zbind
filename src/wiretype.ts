@@ -108,7 +108,7 @@ export class WireTypes {
 			case TypeKind.Bool:
 				return {
 					id: '55a1e2fc01ebfc93dd6a2a15d688e449ccedda46',
-					toStack($1: number) {
+					toStack($1: boolean) {
 						$mem.F64[$args + 0] = +!!$1;
 					},
 					fromStack() {

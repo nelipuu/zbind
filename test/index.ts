@@ -8,7 +8,7 @@ function test(name: string, runner: (equals: (a: any, b: any) => void, throws: (
 
 	runner(
 		(a: any, b: any) => {
-			if(a != b) {
+			if(a !== b) {
 				console.warn('Should be equal: ', a, b);
 				++failed;
 			}
@@ -30,6 +30,9 @@ function test(name: string, runner: (equals: (a: any, b: any) => void, throws: (
 }
 
 test("Passing integer types", (equals, throws) => {
+	equals(lib.identity_bool(false), false);
+	equals(lib.identity_bool(true), true);
+
 	for(let i = 0; i < 256; ++i) {
 		equals(lib.identity_i8(i - 128), i - 128);
 		equals(lib.identity_u8(i), i);
