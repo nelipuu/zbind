@@ -3,6 +3,7 @@ example/
 test/
 src/**/*
 !src/prologue.ts
+!src/wiretype.ts
 zig-*/
 package-lock.json
 .*

@@ -17,10 +17,10 @@
   },
   "main": "dist/index.js",
   "scripts": {
-    "prepare": "tsc -p src",
-    "test-napi": "zig build -Doptimize=ReleaseFast && zbind test/addon.node test/greet.ts && ./run test",
-    "test-wasm": "zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi && zbind test/addon.wasm test/greet.ts && ./run test",
-    "test": "tsc -p src && npm run test-napi && npm run test-wasm"
+    "prepare": "./run src/patch && tsc -p src",
+    "test-napi": "zig build -Doptimize=ReleaseFast && zbind test/addon.node test/lib.ts && ./run test",
+    "test-wasm": "zig build -Doptimize=ReleaseSmall -Dtarget=wasm32-wasi && zbind test/addon.wasm test/lib.ts && ./run test",
+    "test": "./run src/patch && tsc -p src && npm run test-napi && npm run test-wasm"
   },
   "devDependencies": {
     "@oven/zig": "^0.12.0-dev.1286",

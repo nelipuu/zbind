@@ -53,7 +53,7 @@ pub fn build(builder: *std.Build) !void {
 }
 ```
 
-Typically only the path to `main` Zig entry point and output binary path and name need configuring. The `zbind.build` call returns a `std.build.Step.Compile` object for linking with other libraries if needed.
+Typically only the path to `main` Zig entry point and output binary path and name need configuring. The `zbind.build` call returns a `*std.Build.Step.Compile` object for linking with other libraries if needed.
 
 Run these shell commands to install the Zig compiler, compile the code and generate TypeScript bindings:
 

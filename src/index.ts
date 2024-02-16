@@ -1,9 +1,56 @@
 import { makeWasi } from './makeWasi';
-import { $Memory } from './prologue';
 
 interface Page {
 	buffer: ArrayBuffer;
 	ptr: number;
+}
+
+function bindMemory(base: number, buffer: ArrayBuffer) {
+	return {
+		base,
+		I8: new Int8Array(buffer),
+		U8: new Uint8Array(buffer),
+		I16: new Int16Array(buffer),
+		U16: new Uint16Array(buffer),
+		I32: new Int32Array(buffer),
+		U32: new Uint32Array(buffer),
+		I64: new BigInt64Array(buffer),
+		U64: new BigUint64Array(buffer),
+		F32: new Float32Array(buffer),
+		F64: new Float64Array(buffer)
+	};
+}
+
+export type Memory = ReturnType<typeof bindMemory>;
+
+export const decoder = new TextDecoder();
+export const encoder = new TextEncoder();
+
+export class Slice {
+	constructor(private getMemory: () => Memory, public ptr: number, public len: number) {}
+
+	toStack(getMemory: () => Memory, dst: Memory, top: number, arg: number) {
+		const ptr = this.ptr;
+		const len = this.len;
+
+		// Check if this object belongs to the same instance where it needs to be sent.
+		if(getMemory == this.getMemory) {
+			dst.F64[arg] = ptr;
+			dst.F64[arg + 1] = len;
+			return 0;
+		} else {
+			const dstPtr = top * 8;
+			dst.F64[arg] = dstPtr + dst.base;
+			dst.U8.subarray(dstPtr, dstPtr + len).set(this.getMemory().U8.subarray(ptr, ptr + len));
+			return len;
+		}
+	}
+
+	toString() {
+		const mem = this.getMemory();
+		const ptr = this.ptr - mem.base;
+		return decoder.decode(mem.U8.subarray(ptr, ptr + this.len));
+	}
 }
 
 function bindNapi(path: string) {
@@ -17,48 +64,36 @@ function bindNapi(path: string) {
 	const buffer = new ArrayBuffer(megs * 1024 * 1024);
 	const pages: Page[] = [{ buffer, ptr: 0 }];
 
-	const mem: $Memory = {
-		U8: new Uint8Array(buffer),
-		I16: new Int16Array(buffer),
-		U16: new Uint16Array(buffer),
-		I32: new Int32Array(buffer),
-		U32: new Uint32Array(buffer),
-		F32: new Float32Array(buffer),
-		F64: new Float64Array(buffer)
-	};
-
 	(process as any).dlopen({ exports: table }, path);
+	const wrappers = table.init(pages);
+
+	const mem = bindMemory(pages[0].ptr, buffer);
 
 	return {
 		getMemory: () => mem,
 		getTypes: table.getTypes,
 		getType: table.getType,
-		wrappers: table.init(pages),
-		base: pages[0].ptr
+		wrappers
 	};
 }
 
 function bindWasm(source: BufferSource | string) {
-	if(typeof source == 'string') source = eval('require("fs").readFileSync(source)') as BufferSource;
+	if(typeof source == 'string') {
+		if(typeof require != 'function') throw new Error('Cannot synchronously acquire, pass contents instead: ' + source);
+		// Bun eval workaround, need to store in a local variable.
+		const r = require;
+		source = eval('r("fs").readFileSync(source)') as BufferSource;
+	}
 
 	const megs = 32;
 	let memory = new WebAssembly.Memory({ initial: megs * 16 });
 	let buffer: ArrayBuffer | undefined;
-	let mem = {} as $Memory;
+	let mem = {} as Memory;
 
 	function getMemory() {
 		if(buffer != memory.buffer) {
 			buffer = memory.buffer;
-
-			mem = {
-				U8: new Uint8Array(buffer),
-				I16: new Int16Array(buffer),
-				U16: new Uint16Array(buffer),
-				I32: new Int32Array(buffer),
-				U32: new Uint32Array(buffer),
-				F32: new Float32Array(buffer),
-				F64: new Float64Array(buffer)
-			};
+			mem = bindMemory(0, buffer);
 		}
 
 		return mem;
@@ -103,8 +138,7 @@ function bindWasm(source: BufferSource | string) {
 		getMemory,
 		getTypes: table.get(mem.F64[2]),
 		getType: table.get(mem.F64[3]),
-		wrappers,
-		base: 0
+		wrappers
 	};
 }
 

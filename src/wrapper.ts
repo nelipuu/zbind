@@ -1,6 +1,6 @@
-import { getWireType } from './wiretype';
+import { WireTypes } from './wiretype';
 import { Type } from './typeid';
-import { $Memory, $decoder } from './prologue';
+import { Memory, decoder } from './index';
 
 export interface MethodSpec {
 	name?: string;
@@ -8,7 +8,7 @@ export interface MethodSpec {
 	argIds: Float64Array;
 }
 
-export function getMethods(mem: $Memory, pos: number) {
+export function getMethods(mem: Memory, pos: number) {
 	const methods: MethodSpec[] = [];
 	const count = mem.F64[pos++];
 
@@ -19,33 +19,28 @@ export function getMethods(mem: $Memory, pos: number) {
 		pos += arity;
 
 		const namePosEnd = mem.F64[pos];
-		methods.push({ name: $decoder.decode(mem.U8.subarray(namePos, namePosEnd)), num, argIds });
+		methods.push({ name: decoder.decode(mem.U8.subarray(namePos, namePosEnd)), num, argIds });
 	}
 
 	return methods;
 }
 
-export function emitWrapper(spec: MethodSpec): string {
+export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 	const arity = spec.argIds.length - 1;
 	const params: string[] = [];
 	const prologue = ['', 'const $mem = $getMemory();', 'const $args = $top;'];
 	const body: string[] = [''];
 	const epilogue: string[] = [''];
 
-	let id = spec.argIds[0];
-	let type = Type.get(id)
 	// NOTE: WIRE POS OFFSET
 	let wirePos = 1;
 
-	const retWire = getWireType(type);
 	let allocatesWithAlign: number | undefined;
 
 	for(let num = 1; num <= arity; ++num) {
-		id = spec.argIds[num];
-		type = Type.get(id)
 		const name = '$' + num;
-		const argSpec = getWireType(type);
-		const align = argSpec.toStackAllocatesWithAlign;
+		const toStack = wireTypes.toStack(Type.get(spec.argIds[num]), { wirePos, name, indent: '\t\t' })!;
+		const align = toStack.allocatesWithAlign;
 
 		if(align) {
 			if(allocatesWithAlign && allocatesWithAlign < align) {
@@ -57,12 +52,10 @@ export function emitWrapper(spec: MethodSpec): string {
 			allocatesWithAlign = align;
 		}
 
-		params.push(name + ': ' + argSpec.jsType);
+		params.push(name + ': ' + toStack.jsType);
+		if(toStack) body.push(toStack.code);
 
-		const toStack = argSpec.toStack({ wirePos, name, args: '$args', indent: '\t' });
-		if(toStack) body.push(toStack);
-
-		wirePos += argSpec.wireCount;
+		wirePos += toStack.wireCount;
 	}
 
 	if(allocatesWithAlign) {
@@ -75,14 +68,14 @@ export function emitWrapper(spec: MethodSpec): string {
 
 	body.push('$wrappers[' + spec.num + ']();');
 
-	const fromStack = retWire.fromStack && retWire.fromStack({ args: '$args', indent: '\t' });
-	if(fromStack) {
-		epilogue.push(fromStack);
+	const fromStack = wireTypes.fromStack(Type.get(spec.argIds[0]));
+	if(fromStack && fromStack.code) {
+		epilogue.push(fromStack.code);
 		epilogue.push('return $ret;');
 	}
 
 	return (
-		'\tfunction ' + spec.name + '(' + params.join(', ') + '): ' + retWire.jsType + ' {' +
+		'\tfunction ' + spec.name + '(' + params.join(', ') + '): ' + (fromStack ? fromStack.jsType : 'void') + ' {' +
 		prologue.join('\n\t\t') +
 		body.join('\n\t\t') +
 		epilogue.join('\n\t\t') +

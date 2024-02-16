@@ -62,7 +62,9 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 
 		if((if(@hasDecl(@TypeOf(target), "isDarwin")) target else target.result).isDarwin()) lib.linker_allow_shlib_undefined = true;
 
-		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ .path = try std.fs.path.resolve(builder.allocator, &.{ config.root, config.npm, "node-api-headers/include" }) });
+		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ //
+			.path = try std.fs.path.resolve(builder.allocator, &.{ config.root, config.npm, "node-api-headers/include" })
+		});
 	}
 
 	if(@hasDecl(@TypeOf(lib.*), "addModule")) lib.addModule("zbind", zbind) else lib.root_module.addImport("zbind", zbind);

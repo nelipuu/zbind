@@ -1,4 +1,4 @@
-import { $Memory, $decoder } from './prologue';
+import { Memory, decoder } from './index';
 
 export enum TypeKind {
 	Unknown = 0,
@@ -24,7 +24,7 @@ export enum TypeKind {
 }
 
 export class Type {
-	static init(getMemory: () => $Memory, getType: () => void, ptrSize: number) {
+	static init(getMemory: () => Memory, getType: () => void, ptrSize: number) {
 		let offset = 1;
 		Type.getMemory = getMemory;
 		Type.getType = getType;
@@ -57,13 +57,13 @@ export class Type {
 		const flags = view.getUint8(Type.flagsPos);
 
 		this.child = child && kind != TypeKind.Struct ? Type.get(child) : null;
-		this.name = kind == TypeKind.Struct ? $decoder.decode(mem.U8.subarray(Type.specLen, Type.specLen + flags)) : null;
+		this.name = kind == TypeKind.Struct ? decoder.decode(mem.U8.subarray(Type.specLen, Type.specLen + flags)) : null;
 		this.len = len;
 		this.kind = kind;
 		this.flags = flags;
 	}
 
-	private static getMemory: () => $Memory;
+	private static getMemory: () => Memory;
 	private static getType: () => void;
 	private static ptrSize: number;
 

@@ -1,6 +1,6 @@
 node_modules/
 example/src/greet.ts
-test/greet.ts
+test/lib.ts
 dist/
 zig-*/
 package-lock.json
