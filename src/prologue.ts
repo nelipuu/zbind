@@ -25,6 +25,6 @@ function $create(source: BufferSource | string = $defaultPath()) {
 		const deps = $bind(source);
 		$getMemory = deps.getMemory;
 		$wrappers = deps.wrappers;
-		$top = 0;
+		$top = deps.stackBase;
 	};
 } // END

@@ -24,11 +24,12 @@ export enum TypeKind {
 }
 
 export class Type {
-	static init(getMemory: () => Memory, getType: () => void, ptrSize: number) {
-		let offset = 1;
+	static init(getMemory: () => Memory, getType: () => void, ptrSize: number, stackBase: number) {
+		let offset = stackBase;
 		Type.getMemory = getMemory;
 		Type.getType = getType;
 		Type.ptrSize = ptrSize;
+		Type.stackBase = stackBase;
 		const mem = getMemory();
 
 		Type.specLen = mem.F64[offset++];
@@ -46,7 +47,7 @@ export class Type {
 
 	private constructor(id: number) {
 		const mem = Type.getMemory();
-		const view = new DataView(mem.U8.buffer, 8, Type.specLen);
+		const view = new DataView(mem.U8.buffer, Type.stackBase * 8, Type.specLen);
 		view.setFloat64(0, id, true);
 
 		Type.getType();
@@ -66,6 +67,7 @@ export class Type {
 	private static getMemory: () => Memory;
 	private static getType: () => void;
 	private static ptrSize: number;
+	private static stackBase: number;
 
 	private static types: Record<number, Type> = {};
 	private static specLen: number;

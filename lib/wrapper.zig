@@ -4,7 +4,7 @@ const mem = @import("mem.zig");
 const typeid = @import("typeid.zig");
 const WireType = @import("wiretype.zig").WireType;
 
-var stack_top: u32 = 0;
+pub var stack_top: u32 = 0;
 
 pub fn FunctionWrapper(comptime func: anytype) !type {
 	const info = @typeInfo(@TypeOf(func)).Fn;
@@ -52,8 +52,8 @@ pub fn FunctionWrapper(comptime func: anytype) !type {
 			var args: Args = undefined;
 
 			inline for(arg_wire_offsets, &args) |wire_pos, *arg| {
-				// NOTE: WIRE POS OFFSET
-				arg.* = WireType(@TypeOf(arg.*), .{}).fromStack(mem.F64[stack_top + 1 + wire_pos ..]);
+				// Offset by 1 because first entry is stack frame f64 size.
+				arg.* = WireType(@TypeOf(arg.*), .{}).fromStack(mem.F64 + stack_top + 1 + wire_pos);
 			}
 
 			const stack_before = stack_top;
@@ -61,7 +61,7 @@ pub fn FunctionWrapper(comptime func: anytype) !type {
 			const result = @call(.auto, func, args);
 			stack_top = stack_before;
 
-			WireType(Result, .{}).toStack(result, mem.F64[stack_top..]);
+			WireType(Result, .{}).toStack(result, mem.F64 + stack_top);
 		}
 	};
 }

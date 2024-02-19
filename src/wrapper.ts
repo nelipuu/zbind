@@ -32,7 +32,7 @@ export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 	const body: string[] = [''];
 	const epilogue: string[] = [''];
 
-	// NOTE: WIRE POS OFFSET
+	// Leave space for stack frame f64 size.
 	let wirePos = 1;
 
 	let allocatesWithAlign: number | undefined;

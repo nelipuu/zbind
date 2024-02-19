@@ -1,6 +1,8 @@
 const std = @import("std");
 const mem = @import("mem.zig");
 
+pub var stack_base: u32 = 0;
+
 pub const TypeKind = enum(u8) { //
 	Unknown = 0,
 
@@ -28,7 +30,7 @@ pub const TypeSpec = struct { //
 	const Self = @This();
 
 	pub fn emitShape() u32 {
-		const offset = 1;
+		const offset = stack_base;
 		mem.F64[offset + 0] = @sizeOf([1]Self);
 		mem.F64[offset + 1] = @offsetOf(Self, "child");
 		mem.F64[offset + 2] = @offsetOf(Self, "len");
@@ -37,8 +39,8 @@ pub const TypeSpec = struct { //
 		return offset + 5;
 	}
 
-	pub fn emit(ptr: usize) void {
-		@memcpy(mem.U8[8..].ptr, @as([*]const u8, @ptrFromInt(@as(usize, @intFromFloat(mem.F64[ptr]))))[0..@sizeOf(Self)]);
+	pub fn emit() void {
+		@memcpy(mem.U8 + stack_base * 8, @as([*]const u8, @ptrFromInt(@as(usize, @intFromFloat(mem.F64[stack_base]))))[0..@sizeOf(Self)]);
 	}
 
 	child: ?*const anyopaque = null,

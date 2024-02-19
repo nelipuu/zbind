@@ -4,8 +4,6 @@ const mem = @import("mem.zig");
 const typeid = @import("typeid.zig");
 const wrapper = @import("wrapper.zig");
 
-const mem_len = 32 * 1024 * 1024;
-
 const Caller = struct {
 	pub fn init(comptime func: fn () void) type {
 		return struct {
@@ -16,29 +14,38 @@ const Caller = struct {
 	}
 };
 
-pub fn init(comptime API: type, base: [*c]u8) void {
+pub fn init(comptime API: type, mem_ptr: [*c]u8) u32 {
 	const Interface = struct {
 		pub fn getTypes() callconv(.C) void {
 			wrapper.emitTypes(API, Caller);
 		}
 
 		pub fn getType() callconv(.C) void {
-			typeid.TypeSpec.emit(1);
+			typeid.TypeSpec.emit();
 		}
 	};
 
-	mem.U8 = base[0..mem_len];
-	mem.U32 = @as([*]u32, @ptrCast(@alignCast(base)))[0 .. mem_len / 4];
-	mem.F64 = @as([*]f64, @ptrCast(@alignCast(base)))[0 .. mem_len / 8];
+	mem.U8 = mem_ptr;
+	mem.U32 = @ptrCast(@alignCast(mem_ptr));
+	mem.F64 = @ptrCast(@alignCast(mem_ptr));
 
-	mem.F64[1] = @sizeOf(*anyopaque);
-	mem.F64[2] = @floatFromInt(@intFromPtr(&Interface.getTypes));
-	mem.F64[3] = @floatFromInt(@intFromPtr(&Interface.getType));
+	// Allocate 16 memory pages for a cross-language data serialization stack.
+	const index = @wasmMemoryGrow(0, 16);
+	if(index <= 0) @panic("OOM");
+
+	const stack_base = @as(u32, @intCast(index)) * std.wasm.page_size / 8;
+	mem.F64[stack_base + 1] = @sizeOf(*anyopaque);
+	mem.F64[stack_base + 2] = @floatFromInt(@intFromPtr(&Interface.getTypes));
+	mem.F64[stack_base + 3] = @floatFromInt(@intFromPtr(&Interface.getType));
 
 	const methods = comptime wrapper.getMethods(API, Caller);
-	mem.F64[4] = @floatFromInt(methods.len);
+	mem.F64[stack_base + 4] = @floatFromInt(methods.len);
 
-	for(methods, 0..) |method, num| {
+	for(methods, stack_base..) |method, num| {
 		mem.F64[num + 5] = @floatFromInt(@as(usize, @intFromPtr(@as(*const fn () callconv(.C) void, @ptrCast(method.call)))));
 	}
+
+	wrapper.stack_top = stack_base;
+	typeid.stack_base = stack_base;
+	return stack_base;
 }

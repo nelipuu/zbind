@@ -53,7 +53,15 @@ export class Slice {
 	}
 }
 
-function bindNapi(path: string) {
+interface Reflection {
+	getMemory: () => Memory;
+	getTypes: () => void;
+	getType: () => void;
+	stackBase: number;
+	wrappers: CallableFunction[];
+}
+
+function bindNapi(path: string): Reflection {
 	const table = {} as {
 		init(pages: Page[]): CallableFunction[],
 		getTypes(): void,
@@ -73,11 +81,12 @@ function bindNapi(path: string) {
 		getMemory: () => mem,
 		getTypes: table.getTypes,
 		getType: table.getType,
+		stackBase: 0,
 		wrappers
 	};
 }
 
-function bindWasm(source: BufferSource | string) {
+function bindWasm(source: BufferSource | string): Reflection {
 	if(typeof source == 'string') {
 		if(typeof require != 'function') throw new Error('Cannot synchronously acquire, pass contents instead: ' + source);
 		// Bun eval workaround, need to store in a local variable.
@@ -127,21 +136,22 @@ function bindWasm(source: BufferSource | string) {
 	const table = lib.__indirect_function_table;
 	if(lib.memory) wasi.setMemory(memory = lib.memory);
 
-	lib.init(0);
+	const stackBase = lib.init(0);
 	mem = getMemory();
 
 	const wrappers: CallableFunction[] = [];
-	const count = mem.F64[4];
-	for(let i = 0; i < count; ++i) wrappers[i] = table.get(mem.F64[i + 5]);
+	const count = mem.F64[stackBase + 4];
+	for(let i = 0; i < count; ++i) wrappers[i] = table.get(mem.F64[stackBase + i + 5]);
 
 	return {
 		getMemory,
-		getTypes: table.get(mem.F64[2]),
-		getType: table.get(mem.F64[3]),
+		getTypes: table.get(mem.F64[stackBase + 2]),
+		getType: table.get(mem.F64[stackBase + 3]),
+		stackBase,
 		wrappers
 	};
 }
 
-export function $bind(source: BufferSource | string) {
+export function $bind(source: BufferSource | string): Reflection {
 	return typeof source == 'string' && !/\.wasm$/.test(source) ? bindNapi(source) : bindWasm(source);
 }

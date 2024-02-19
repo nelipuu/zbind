@@ -78,9 +78,9 @@ fn Module(comptime API: type) type {
 				var ref: napi.napi_ref = undefined;
 				if(napi.napi_create_reference(env, argv[0], 1, &ref) != napi.napi_ok) break :fail;
 
-				mem.U8 = mem_ptr[0..mem_len];
-				mem.U32 = @as([*]u32, @ptrCast(@alignCast(mem_ptr)))[0 .. mem_len / 4];
-				mem.F64 = @as([*]f64, @ptrCast(@alignCast(mem_ptr)))[0 .. mem_len / 8];
+				mem.U8 = mem_ptr;
+				mem.U32 = @ptrCast(@alignCast(mem_ptr));
+				mem.F64 = @ptrCast(@alignCast(mem_ptr));
 
 				mem.F64[0] = std.mem.page_size;
 				mem.F64[1] = @sizeOf(*anyopaque);
@@ -99,7 +99,7 @@ fn Module(comptime API: type) type {
 		}
 
 		pub fn getType(_: Env, _: napi.napi_callback_info) callconv(.C) Value {
-			typeid.TypeSpec.emit(1);
+			typeid.TypeSpec.emit();
 			return null;
 		}
 	};

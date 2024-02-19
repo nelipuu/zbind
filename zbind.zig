@@ -6,7 +6,7 @@ pub fn init(comptime API: type) void {
 		const zbind = @import("lib/zbind-wasm.zig");
 
 		@export(struct {
-			pub fn init(base: [*c]u8) callconv(.C) void {
+			pub fn init(base: [*c]u8) callconv(.C) u32 {
 				return zbind.init(API, base);
 			}
 		}.init, .{ .name = "init" });

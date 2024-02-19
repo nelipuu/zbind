@@ -15,17 +15,17 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 		.Void => struct {
 			pub const count = if(flags.isZero()) 0 else 1;
 
-			pub inline fn toStack(_: Type, _: []f64) void {}
+			pub inline fn toStack(_: Type, _: [*]f64) void {}
 		},
 		.Bool => struct {
 			pub const count = 1;
 
-			pub inline fn fromStack(wire: []const f64) Type {
+			pub inline fn fromStack(wire: [*]const f64) Type {
 				// TODO: Handle flags
 				return wire[0] != 0;
 			}
 
-			pub inline fn toStack(value: Type, wire: []f64) void {
+			pub inline fn toStack(value: Type, wire: [*]f64) void {
 				wire[0] = if(value) 1 else 0;
 			}
 		},
@@ -33,26 +33,26 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 		.Int => struct {
 			pub const count = 1 + if(flags.isZero()) 0 else 1;
 
-			pub inline fn fromStack(wire: []const f64) Type {
+			pub inline fn fromStack(wire: [*]const f64) Type {
 				// TODO: Handle flags
 				// Assume little-endian for int and float, big-endian systems would need an offset 8 - @sizeOf(Type)
-				return @as([*]const Type, @ptrCast(wire.ptr))[0];
+				return @as([*]const Type, @ptrCast(wire))[0];
 			}
 
-			pub inline fn toStack(value: Type, wire: []f64) void {
-				@as([*]Type, @ptrCast(wire.ptr))[0] = value;
+			pub inline fn toStack(value: Type, wire: [*]f64) void {
+				@as([*]Type, @ptrCast(wire))[0] = value;
 			}
 		},
 
 		.Float => struct {
 			pub const count = 1 + if(flags.isZero()) 0 else 1;
 
-			pub inline fn fromStack(wire: []const f64) Type {
+			pub inline fn fromStack(wire: [*]const f64) Type {
 				// TODO: Handle flags
 				return @floatCast(wire[0]);
 			}
 
-			pub inline fn toStack(value: Type, wire: []f64) void {
+			pub inline fn toStack(value: Type, wire: [*]f64) void {
 				wire[0] = @floatCast(value);
 			}
 		},
@@ -61,14 +61,14 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 			.Slice => struct {
 				pub const count = 2 + if(flags.failable) 1 else 0;
 
-				pub inline fn fromStack(wire: []const f64) Type {
+				pub inline fn fromStack(wire: [*]const f64) Type {
 					const ptr: [*]info.child = @ptrFromInt(@as(usize, @intFromFloat(wire[0])));
 					const len: u32 = @as(*const u32, @ptrCast(&wire[1])).*;
 
 					return ptr[0..len];
 				}
 
-				pub inline fn toStack(value: Type, wire: []f64) void {
+				pub inline fn toStack(value: Type, wire: [*]f64) void {
 					wire[0] = @floatFromInt(@as(usize, @intFromPtr(value.ptr)));
 					@as(*u32, @ptrCast(&wire[1])).* = @truncate(value.len);
 				}

@@ -6,7 +6,7 @@ The corresponding Zig source code is in [`../lib`](../lib).
 
 ## Files
 
-- [`emit.ts`](emit.ts) writes out the contents of [`prologue.ts`](prologue.ts) and wrappers for Zig functions passed to `init` in zbind Zig code.
+- [`emit.ts`](emit.ts) writes out the contents of [`prologue.ts`](prologue.ts) and wrappers for Zig functions passed to `init` in [`../zbind.zig`](../zbind.zig).
 - [`generate.ts`](generate.ts) is the main entry point for the binding generation tool, taking as command line arguments the file names of a compiled binary and TypeScript bindings to generate.
 - [`index.ts`](index.ts) is the main package export, defining zbind's run-time API that gets called by the generated bindings.
 - [`makeWasi.ts`](makeWasi.ts) defines a barebones WASI interface capable of writing to stdout (`console.log`) and stderr (`console.error`).
