@@ -54,7 +54,7 @@ Run these shell commands to install the Zig compiler, compile the code and gener
 
 ```bash
 npm install --save zbind
-npm install --save-dev @oven/zig node-api-headers
+npm install --save-dev node-api-headers
 
 # For native
 zig build -Doptimize=ReleaseFast
@@ -66,3 +66,33 @@ npx zbind dist/addon.wasm src/greet.ts
 ```
 
 The commands compile the Zig code to a native or Wasm binary and then call a TypeScript-based tool to inspect it and generate wrapper functions in `src/greet.ts` with matching types and necessary marshalling.
+
+To install Zig from NPM you can do:
+
+```
+npm install --save-dev @oven/zig
+```
+
+## Supported data types
+
+| Zig          | TypeScript          | Notes |
+|--------------|---------------------|-------|
+| `bool`       | `boolean`           |       |
+| `u8` - `u32` | `number`            | Conversion from `number` rounds down, throws if outside range. |
+| `i8` - `i32` | `number`            | Conversion from `number` rounds towards 0, throws if outside range. |
+| `f32`, `f64` | `number`            |       |
+| `u64`, `i64` | `bigint`            |       |
+| `[]u8`       | `Slice`, `string`   | `Slice` of `u8` has a `toString` method for automatic coercion.<br>Strings are passed through a stack. |
+| `struct`     | `OpaqueStruct`      | TypeScript takes ownership of opaque structs passed by value<br>such as `std.mem.Allocator` |
+
+Support is planned for more slice types, pointers, nullables, error unions, callbacks and accessing struct fields and methods.
+
+## Architecture
+
+Generated TypeScript bindings are identical for Wasm and Node-API. Values are marshalled using a separate one-megabyte stack mostly accessed through a `[]f64` / `Float64Array`. Since `f64` can represent 53-bit integers, it fits pointers to memory as well.
+
+When compiled, `zbind.zig` analyzes argument and return types of Zig functions at comptime, stores the metadata in a compact binary representation and defines special endpoints for querying functions and types. It generates Zig wrapper functions for Zig methods to handle type marshalling and reports a list of pointers to those functions when initialized.
+
+The `zbind` command line tool loads the compiled binary and queries its metadata endpoints to generate a TypeScript wrapper for each Zig function which calls it automatically converting types. The tool writes out TypeScript source code defining and exporting the wrapper functions.
+
+After importing the generated file in your own TypeScript code and making the first call to Zig code through it, the bindings load the compiled binary.
