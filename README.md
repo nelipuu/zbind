@@ -42,16 +42,13 @@ const zbind = @import("node_modules/zbind/zbind.zig");
 pub fn build(builder: *std.Build) !void {
     _ = try zbind.build(.{ //
         .builder = builder,
-        .root = std.fs.path.dirname(@src().file) orelse ".",
         .main = "lib/main.zig",
-        .npm = "node_modules",
-        .out_dir = "dist",
-        .out_name = "addon"
+        .out = "dist/addon"
     });
 }
 ```
 
-Typically only the path to `main` Zig entry point and output binary path and name need configuring. The `zbind.build` call returns a `*std.Build.Step.Compile` object for linking with other libraries if needed.
+The `zbind.build` call returns a `*std.Build.Step.Compile` object for linking with other libraries if needed.
 
 Run these shell commands to install the Zig compiler, compile the code and generate TypeScript bindings:
 

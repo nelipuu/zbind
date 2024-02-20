@@ -28,12 +28,22 @@ pub fn init(comptime API: type) void {
 	}
 }
 
-pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []const u8, npm: []const u8, out_dir: []const u8, out_name: []const u8 }) !*std.Build.Step.Compile {
+pub fn build(
+	config: struct { //
+		builder: *std.Build,
+		root: ?[]const u8 = null,
+		main: []const u8,
+		npm: []const u8 = "node_modules",
+		out: []const u8
+	}
+) !*std.Build.Step.Compile {
 	const builder = config.builder;
+	const root = config.root orelse builder.build_root.path orelse ".";
+	const name = std.fs.path.basename(config.out);
 	const target = builder.standardTargetOptions(.{});
 	const optimize = builder.standardOptimizeOption(.{});
 	const lib = builder.addSharedLibrary(.{ //
-		.name = config.out_name,
+		.name = name,
 		.root_source_file = .{ .path = config.main },
 		.target = target,
 		.optimize = optimize
@@ -61,7 +71,7 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 		if((if(@hasDecl(@TypeOf(target), "isDarwin")) target else target.result).isDarwin()) lib.linker_allow_shlib_undefined = true;
 
 		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ //
-			.path = try std.fs.path.resolve(builder.allocator, &.{ config.root, config.npm, "node-api-headers/include" })
+			.path = try std.fs.path.resolve(builder.allocator, &.{ root, config.npm, "node-api-headers/include" })
 		});
 	}
 
@@ -70,10 +80,10 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 	builder.getInstallStep().dependOn(&builder.addInstallArtifact(lib, .{
 		.dest_dir = .{
 			.override = .{ //
-				.custom = try std.fs.path.relative(builder.allocator, builder.install_prefix, try std.fs.path.resolve(builder.allocator, &.{ config.root, config.out_dir }))
+				.custom = try std.fs.path.relative(builder.allocator, builder.install_prefix, try std.fs.path.resolve(builder.allocator, &.{ root, std.fs.path.dirname(config.out) orelse "." }))
 			}
 		},
-		.dest_sub_path = try std.fmt.allocPrint(builder.allocator, "{s}{s}", .{ config.out_name, if(arch == .wasm32) ".wasm" else ".node" })
+		.dest_sub_path = try std.fmt.allocPrint(builder.allocator, "{s}{s}", .{ name, if(arch == .wasm32) ".wasm" else ".node" })
 	}).step);
 
 	return lib;
