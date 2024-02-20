@@ -27,5 +27,6 @@ export function $create() {
 		$wrappers = deps.wrappers;
 		$top = deps.stackBase;
 		$mem = $getMemory();
-	};
+	}
+
 } // END

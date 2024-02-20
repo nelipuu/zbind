@@ -222,7 +222,6 @@ export class WireTypes {
 				},
 				fromStack() {
 					const $ret: $OpaqueStruct = new $OpaqueStruct($mem.U8.slice($top * 8, $top * 8 + 0x0));
-					// foo
 				}
 			};
 		}
