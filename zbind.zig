@@ -33,7 +33,7 @@ pub fn build(
 		builder: *std.Build,
 		root: ?[]const u8 = null,
 		main: []const u8,
-		npm: []const u8 = "node_modules",
+		npm: ?[]const u8 = null,
 		out: []const u8
 	}
 ) !*std.Build.Step.Compile {
@@ -70,9 +70,16 @@ pub fn build(
 	} else {
 		if((if(@hasDecl(@TypeOf(target), "isDarwin")) target else target.result).isDarwin()) lib.linker_allow_shlib_undefined = true;
 
-		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ //
-			.path = try std.fs.path.resolve(builder.allocator, &.{ root, config.npm, "node-api-headers/include" })
+		const include_path = try std.fs.path.resolve(builder.allocator, if(config.npm) |npm| &.{
+			root, //
+			npm,
+			"node-api-headers/include"
+		} else &.{
+			std.fs.path.dirname(@src().file) orelse ".", //
+			"../node-api-headers/include"
 		});
+
+		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ .path = include_path });
 	}
 
 	if(@hasDecl(@TypeOf(lib.*), "addModule")) lib.addModule("zbind", zbind) else lib.root_module.addImport("zbind", zbind);

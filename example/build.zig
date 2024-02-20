@@ -5,6 +5,6 @@ pub fn build(builder: *std.Build) !void {
     _ = try zbind.build(.{ //
         .builder = builder,
         .main = "lib/main.zig",
-        .out = "addon"
+        .out = "dist/addon"
     });
 }
