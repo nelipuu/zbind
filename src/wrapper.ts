@@ -28,7 +28,7 @@ export function getMethods(mem: Memory, pos: number) {
 export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 	const arity = spec.argIds.length - 1;
 	const params: string[] = [];
-	const prologue = ['', 'const $args = $top;'];
+	const prologue = ['', 'const $F64 = $mem.F64;', 'const $args = $top;'];
 	const body: string[] = [''];
 	const epilogue: string[] = ['', '$mem = $getMemory();'];
 
@@ -60,18 +60,20 @@ export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 
 	if(allocatesWithAlign) {
 		prologue.push('$top += ' + wirePos + ';');
-		body.push('$mem.F64[$args] = $top + $intMagic;');
+		body.push('$F64[$args] = $top + $intMagic;');
 		epilogue.push('$top = $args;');
 	} else {
-		prologue.push('$mem.F64[$args] = $top + ' + wirePos + ' + $intMagic;');
+		prologue.push('$F64[$args] = $top + ' + wirePos + ' + $intMagic;');
 	}
 
 	body.push('$wrappers[' + spec.num + ']();');
 
 	const fromStack = wireTypes.fromStack(Type.get(spec.argIds[0]), { indent: '\t\t' });
 	if(fromStack && fromStack.code) {
-		epilogue.push(fromStack.code);
-		epilogue.push('return $ret;');
+		const code = fromStack.code;
+		const short = code.replace(/(let|const)[ \t]+\$ret[ \t]*:[^=\n]+=[ \t]*([^;\n]+);$/, 'return $2;');
+		epilogue.push(short);
+		if(short == code) epilogue.push('return $ret;');
 	}
 
 	return (

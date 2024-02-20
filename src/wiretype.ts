@@ -32,6 +32,7 @@ interface FromStackSpec {
 
 // Variables declared only to benefit from typings while editing this file. Code referencing them never runs.
 declare const $mem: Memory;
+declare const $F64: Float64Array;
 declare const $args: number;
 declare const $intMagic: number;
 declare const $getMemory: () => Memory;
@@ -108,9 +109,9 @@ export class WireTypes {
 				};
 			case TypeKind.Bool:
 				return {
-					id: '55a1e2fc01ebfc93dd6a2a15d688e449ccedda46',
+					id: '9a36457fb892b3405415282d19c00d5ca16f98d7',
 					toStack($1: boolean) {
-						$mem.F64[$args + 0] = +!!$1;
+						$F64[$args + 0] = +!!$1;
 					},
 					fromStack() {
 						const $ret: boolean = !!$mem.F64[$args + 0];
@@ -152,7 +153,7 @@ export class WireTypes {
 							const $ret: number = $mem.I8[($args + 0) * 8];
 						}
 					}; else return {
-						id: '48933225afe148b3fd087060f970fe5259fda6b1',
+						id: '11552aab0aa558194d08aeb2f1cba4d91891b58c',
 						replace: {
 							'U8': 'U' + type.len,
 							'\\* 8': '* ' + (64 / type.len),
@@ -160,7 +161,7 @@ export class WireTypes {
 						},
 						toStack($1: number) {
 							if($1 < 0 || $1 >= 256) throw new RangeError($1 + ' is out of range');
-							$mem.F64[$args + 0] = ($1 >>> 0) + $intMagic;
+							$F64[$args + 0] = ($1 >>> 0) + $intMagic;
 						},
 						fromStack() {
 							const $ret: number = $mem.U8[($args + 0) * 8];
@@ -168,9 +169,9 @@ export class WireTypes {
 					};
 				}
 			case TypeKind.Float: return {
-				id: 'e4c653fdc0378a6709639272de02b1e524550cc1',
+				id: 'a3f9ab50edb4b61b3765d9f386b285d6b80cb4ce',
 				toStack($1: number) {
-					$mem.F64[$args + 0] = $1;
+					$F64[$args + 0] = $1;
 				},
 				fromStack() {
 					const $ret: number = $mem.F64[$args + 0];
@@ -179,13 +180,13 @@ export class WireTypes {
 
 			case TypeKind.Slice:
 				if(child!.kind == TypeKind.Int && child!.len == 8) return {
-					id: 'de4d733146bd43736c7a8666347e24fe67ca334d',
+					id: '0ef1c699b1f054d715b8a0502592b552d59b48cc',
 					toStackAllocatesWithAlign: 1,
 					toStack($1: $Slice | string) {
 						if(typeof $1 == "string") {
 							const $len = $encoder.encodeInto($1, $mem.U8.subarray($top * 8)).written;
-							$mem.F64[$args + 0] = $top * 8 + $mem.base;
-							$mem.F64[$args + 1] = $len + $intMagic;
+							$F64[$args + 0] = $top * 8 + $mem.base;
+							$F64[$args + 1] = $len + $intMagic;
 							$top += $len / 8;
 						} else {
 							$top += $1.toStack($getMemory, $mem, $top, $args + 0) / 8;
@@ -209,18 +210,19 @@ export class WireTypes {
 				};
 
 			case TypeKind.Struct: return {
-				id: 'e5c5ad04b7dcd60eabc6a670e6f2299ad4799f15',
+				id: '7baf70067cdb3db41f490088fe42714fdb1b97a8',
 				replace: {
 					'0x0': '' + type.len
 				},
 				toStackAllocatesWithAlign: 1 / 8,
 				toStack($1: $OpaqueStruct) {
-					$mem.F64[$args + 0] = $top * 8 + $mem.base;
+					$F64[$args + 0] = $top * 8 + $mem.base;
 					$mem.U8.set($1.data, $top * 8);
 					$top += 0x0 / 8;
 				},
 				fromStack() {
 					const $ret: $OpaqueStruct = new $OpaqueStruct($mem.U8.slice($top * 8, $top * 8 + 0x0));
+					// foo
 				}
 			};
 		}
