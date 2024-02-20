@@ -16,14 +16,12 @@ pub fn hello(name: []const u8) void {
     std.debug.print("Hello, {s}!\n", .{ name });
 }
 
-pub fn main() void {}
-
 comptime {
     zbind.init(@This());
 }
 ```
 
-It exports a Zig function `hello`, callable from TypeScript. A wrapper function will be exported that receives a string pointer and length in memory shared between Zig and the JavaScript engine. The empty `main` is needed for compiling to Wasm.
+It exports a Zig function `hello`, callable from TypeScript. A wrapper function will be exported that receives a string pointer and length in memory shared between Zig and the JavaScript engine.
 
 Example TypeScript code [`src/index.ts`](example/src/index.ts) to call it:
 

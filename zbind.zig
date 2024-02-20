@@ -5,6 +5,13 @@ pub fn init(comptime API: type) void {
 	if(builtin.cpu.arch == .wasm32) {
 		const zbind = @import("lib/zbind-wasm.zig");
 
+		// Support linking with libc.
+		@export(struct {
+			pub fn main(_: c_int, _: *anyopaque) callconv(.C) c_int {
+				return 0;
+			}
+		}.main, .{ .name = "main" });
+
 		@export(struct {
 			pub fn init(base: [*c]u8) callconv(.C) u32 {
 				return zbind.init(API, base);
@@ -25,7 +32,12 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 	const builder = config.builder;
 	const target = builder.standardTargetOptions(.{});
 	const optimize = builder.standardOptimizeOption(.{});
-	var lib: *std.Build.Step.Compile = undefined;
+	const lib = builder.addSharedLibrary(.{ //
+		.name = config.out_name,
+		.root_source_file = .{ .path = config.main },
+		.target = target,
+		.optimize = optimize
+	});
 
 	const zbind = builder.createModule(if(@hasField(std.Build.Module, "root_source_file")) .{
 		.root_source_file = .{ //
@@ -42,24 +54,10 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 	const arch = (if(@hasField(@TypeOf(target), "cpu_arch")) target else target.query).cpu_arch;
 
 	if(arch == .wasm32) {
-		lib = builder.addExecutable(.{ //
-			.name = config.out_name,
-			.root_source_file = .{ .path = config.main },
-			.target = target,
-			.optimize = optimize
-		});
-
 		lib.export_memory = true;
 		lib.export_table = true;
 		(if(@hasField(@TypeOf(lib.*), "export_symbol_names")) lib else lib.root_module).export_symbol_names = &.{"init"};
 	} else {
-		lib = builder.addSharedLibrary(.{ //
-			.name = config.out_name,
-			.root_source_file = .{ .path = config.main },
-			.target = target,
-			.optimize = optimize
-		});
-
 		if((if(@hasDecl(@TypeOf(target), "isDarwin")) target else target.result).isDarwin()) lib.linker_allow_shlib_undefined = true;
 
 		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ //
@@ -68,8 +66,6 @@ pub fn build(config: struct { builder: *std.Build, root: []const u8, main: []con
 	}
 
 	if(@hasDecl(@TypeOf(lib.*), "addModule")) lib.addModule("zbind", zbind) else lib.root_module.addImport("zbind", zbind);
-
-	lib.linkLibC();
 
 	builder.getInstallStep().dependOn(&builder.addInstallArtifact(lib, .{
 		.dest_dir = .{

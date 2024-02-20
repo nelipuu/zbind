@@ -2,7 +2,7 @@ const std = @import("std");
 const zbind = @import("zbind.zig");
 
 pub fn build(builder: *std.Build) !void {
-	_ = try zbind.build(.{ //
+	const lib = try zbind.build(.{ //
 		.root = std.fs.path.dirname(@src().file) orelse ".",
 		.builder = builder,
 		.main = "test/addon.zig",
@@ -10,4 +10,6 @@ pub fn build(builder: *std.Build) !void {
 		.out_dir = "test",
 		.out_name = "addon"
 	});
+
+	lib.linkLibC();
 }
