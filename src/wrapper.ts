@@ -28,9 +28,9 @@ export function getMethods(mem: Memory, pos: number) {
 export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 	const arity = spec.argIds.length - 1;
 	const params: string[] = [];
-	const prologue = ['', 'const $mem = $getMemory();', 'const $args = $top;'];
+	const prologue = ['', 'const $args = $top;'];
 	const body: string[] = [''];
-	const epilogue: string[] = [''];
+	const epilogue: string[] = ['', '$mem = $getMemory();'];
 
 	// Leave space for stack frame f64 size.
 	let wirePos = 1;
@@ -68,7 +68,7 @@ export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 
 	body.push('$wrappers[' + spec.num + ']();');
 
-	const fromStack = wireTypes.fromStack(Type.get(spec.argIds[0]));
+	const fromStack = wireTypes.fromStack(Type.get(spec.argIds[0]), { indent: '\t\t' });
 	if(fromStack && fromStack.code) {
 		epilogue.push(fromStack.code);
 		epilogue.push('return $ret;');

@@ -67,8 +67,8 @@ export function readSnippets(lines: string[]) {
 		} else if(indent < block.indent) {
 			block.end = row;
 
-			if(block.hashRow && block.hash) {
-				snippets.push(new Snippet(lines, block.hash, block.hashRow, block.toStack, block.fromStack));
+			if(block.hashRow) {
+				snippets.push(new Snippet(lines, block.hash || '', block.hashRow, block.toStack, block.fromStack));
 			}
 
 			do {

@@ -23,6 +23,13 @@ function bindMemory(base: number, buffer: ArrayBuffer) {
 
 export type Memory = ReturnType<typeof bindMemory>;
 
+export function lazyMemory(init: () => Memory): Memory {
+	return Object.defineProperties(
+		{} as any as Memory,
+		Object.fromEntries(Object.entries(bindMemory(0, new ArrayBuffer(0))).map(([key]) => [key, { get: () => init()[key as keyof Memory] }]))
+	);
+}
+
 export const decoder = new TextDecoder();
 export const encoder = new TextEncoder();
 
@@ -51,6 +58,10 @@ export class Slice {
 		const ptr = this.ptr - mem.base;
 		return decoder.decode(mem.U8.subarray(ptr, ptr + this.len));
 	}
+}
+
+export class OpaqueStruct {
+	constructor(public data: Uint8Array) {}
 }
 
 interface Reflection {

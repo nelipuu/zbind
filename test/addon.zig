@@ -1,32 +1,46 @@
+const std = @import("std");
+const builtin = @import("builtin");
 const zbind = @import("zbind");
 
-fn Identity(comptime Type: type) type {
+fn Test(comptime Type: type) type {
 	return struct {
-		pub fn call(value: Type) Type {
+		pub fn identity(value: Type) Type {
 			return value;
 		}
 	};
 }
 
 const API = struct {
-	pub const identity_bool = Identity(bool).call;
+	pub fn nop() void {}
 
-	pub const identity_i8 = Identity(i8).call;
-	pub const identity_u8 = Identity(u8).call;
-	pub const identity_i16 = Identity(i16).call;
-	pub const identity_u16 = Identity(u16).call;
-	pub const identity_i32 = Identity(i32).call;
-	pub const identity_u32 = Identity(u32).call;
-	pub const identity_i64 = Identity(i64).call;
-	pub const identity_u64 = Identity(u64).call;
+	pub const identity_bool = Test(bool).identity;
 
-	pub const identity_f32 = Identity(f32).call;
-	pub const identity_f64 = Identity(f64).call;
+	pub const identity_i8 = Test(i8).identity;
+	pub const identity_u8 = Test(u8).identity;
+	pub const identity_i16 = Test(i16).identity;
+	pub const identity_u16 = Test(u16).identity;
+	pub const identity_i32 = Test(i32).identity;
+	pub const identity_u32 = Test(u32).identity;
+	pub const identity_i64 = Test(i64).identity;
+	pub const identity_u64 = Test(u64).identity;
 
-	pub const identity_slice_u8 = Identity([]u8).call;
+	pub const identity_f32 = Test(f32).identity;
+	pub const identity_f64 = Test(f64).identity;
+
+	pub const identity_slice_u8 = Test([]u8).identity;
+
+	pub fn get_allocator() std.mem.Allocator {
+		return std.heap.page_allocator;
+	}
+
+	pub fn use_allocator(allocator: std.mem.Allocator) f64 {
+		const ptr = allocator.create(u8) catch @panic("OOM");
+		defer allocator.destroy(ptr);
+
+		const result: f64 = @floatFromInt(@intFromPtr(ptr));
+		return result;
+	}
 };
-
-pub fn main() void {}
 
 comptime {
 	zbind.init(API);

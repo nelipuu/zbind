@@ -6,7 +6,8 @@ import {
 	decoder as $decoder,
 	encoder as $encoder,
 	Memory,
-	Slice as $Slice
+	Slice as $Slice,
+	OpaqueStruct as $OpaqueStruct
 } from './index';
 
 export interface WireType {
@@ -76,7 +77,7 @@ export class WireTypes {
 		};
 	}
 
-	fromStack(type: Type, spec?: FromStackSpec) {
+	fromStack(type: Type, spec: FromStackSpec) {
 		const wireType = this.lookup(type);
 		const snippet = wireType && this.snippets[wireType.id];
 		if(!snippet) return;
@@ -84,7 +85,7 @@ export class WireTypes {
 		const fromStack = snippet.fromStack;
 
 		return {
-			code: transform(fromStack.code, wireType.replace),
+			code: transform(fromStack.code.replace(/\n/g, '\n' + spec.indent), wireType.replace),
 			jsType: fromStack.jsType
 		};
 	}
@@ -206,6 +207,22 @@ export class WireTypes {
 						const $ret: $Slice = new $Slice($getMemory, $args + 0, $args + 1);
 					}
 				};
+
+			case TypeKind.Struct: return {
+				id: 'e5c5ad04b7dcd60eabc6a670e6f2299ad4799f15',
+				replace: {
+					'0x0': '' + type.len
+				},
+				toStackAllocatesWithAlign: 1 / 8,
+				toStack($1: $OpaqueStruct) {
+					$mem.F64[$args + 0] = $top * 8 + $mem.base;
+					$mem.U8.set($1.data, $top * 8);
+					$top += 0x0 / 8;
+				},
+				fromStack() {
+					const $ret: $OpaqueStruct = new $OpaqueStruct($mem.U8.slice($top * 8, $top * 8 + 0x0));
+				}
+			};
 		}
 
 		throw new Error('Unknown type');

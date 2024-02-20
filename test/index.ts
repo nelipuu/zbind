@@ -30,6 +30,8 @@ function test(name: string, runner: (equals: (a: any, b: any) => void, throws: (
 }
 
 test("Passing booleans", (equals, throws) => {
+	equals(lib.nop(), void 0);
+
 	equals(lib.identity_bool(false), false);
 	equals(lib.identity_bool(true), true);
 });
@@ -109,4 +111,9 @@ test('Passing strings', (equals) => {
 	for(const text of ['', '\0', '\0\0', ' \0 ', ' ', 'Hello!']) {
 		equals('' + lib.identity_slice_u8(text), text);
 	}
+});
+
+test('Passing allocators', (equals) => {
+	const allocator = lib.get_allocator();
+	equals(lib.use_allocator(allocator) > 0, true);
 });

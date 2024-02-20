@@ -82,6 +82,18 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 
 		.Struct => struct {
 			pub const count = 1 + if(flags.failable) 1 else 0;
+
+			pub inline fn fromStack(wire: [*]const f64) Type {
+				const ptr: [*]const u8 = @ptrFromInt(@as(usize, @intFromFloat(wire[0])));
+				var value: Type = undefined;
+				@memcpy(@as([*]u8, @ptrCast(&value)), ptr[0..@sizeOf(Type)]);
+
+				return value;
+			}
+
+			pub inline fn toStack(value: Type, wire: [*]f64) void {
+				@memcpy(@as([*]u8, @ptrCast(wire)), @as([*]const u8, @ptrCast(&value))[0..@sizeOf(Type)]);
+			}
 		},
 
 		.Optional => |info| {
