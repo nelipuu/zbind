@@ -1,19 +1,9 @@
-pub const WireFlags = packed struct(u32) { //
-	const Self = @This();
-
-	nullable: bool = false,
-	failable: bool = false,
-	padding: u30 = 0,
-
-	pub inline fn isZero(self: Self) bool {
-		return @as(u32, @bitCast(self)) == 0;
-	}
-};
-
-pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
+pub fn WireType(comptime Type: type) type {
 	return switch(@typeInfo(Type)) {
 		.Void => struct {
-			pub const count = if(flags.isZero()) 0 else 1;
+			pub const count = 0;
+
+			pub inline fn fromStack(_: [*]const f64) Type {}
 
 			pub inline fn toStack(_: Type, _: [*]f64) void {}
 		},
@@ -21,7 +11,6 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
-				// TODO: Handle flags
 				return wire[0] != 0;
 			}
 
@@ -31,10 +20,9 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 		},
 
 		.Int => struct {
-			pub const count = 1 + if(flags.isZero()) 0 else 1;
+			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
-				// TODO: Handle flags
 				// Assume little-endian for int and float, big-endian systems would need an offset 8 - @sizeOf(Type)
 				return @as([*]const Type, @ptrCast(wire))[0];
 			}
@@ -45,10 +33,9 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 		},
 
 		.Float => struct {
-			pub const count = 1 + if(flags.isZero()) 0 else 1;
+			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
-				// TODO: Handle flags
 				return @floatCast(wire[0]);
 			}
 
@@ -59,7 +46,7 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 
 		.Pointer => |info| switch(info.size) {
 			.Slice => struct {
-				pub const count = 2 + if(flags.failable) 1 else 0;
+				pub const count = 2;
 
 				pub inline fn fromStack(wire: [*]const f64) Type {
 					const ptr: [*]info.child = @ptrFromInt(@as(usize, @intFromFloat(wire[0])));
@@ -74,14 +61,14 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 				}
 			},
 			else => struct {
-				pub const count = 1 + if(flags.failable) 1 else 0;
+				pub const count = 1;
 			}
 		},
 
 		// .Array =>
 
 		.Struct => struct {
-			pub const count = 1 + if(flags.failable) 1 else 0;
+			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
 				const ptr: [*]const u8 = @ptrFromInt(@as(usize, @intFromFloat(wire[0])));
@@ -97,16 +84,28 @@ pub fn WireType(comptime Type: type, comptime flags: WireFlags) type {
 		},
 
 		.Optional => |info| {
-			var child_flags = flags;
-			child_flags.nullable = true;
+			const Child = WireType(info.child);
 
-			return WireType(info.child, child_flags);
+			return struct {
+				pub const count = @max(Child.count, 1);
+
+				pub inline fn fromStack(wire: [*]const f64) Type {
+					return if(@as([*]const u32, @ptrCast(wire))[1] == 0x7ff40000) null else Child.fromStack(wire);
+				}
+
+				pub inline fn toStack(value: Type, wire: [*]f64) void {
+					if(value == null) {
+						@as([*]u32, @ptrCast(wire))[1] = 0x7ff40000;
+					} else {
+						// Ensure null status is cleared.
+						wire[0] = 0;
+						Child.toStack(value.?, wire);
+					}
+				}
+			};
 		},
 		.ErrorUnion => |info| {
-			var child_flags = flags;
-			child_flags.failable = true;
-
-			return WireType(info.child, child_flags);
+			return WireType(info.child);
 		},
 
 		else => @compileError("Cannot handle type")

@@ -13,6 +13,10 @@ import {
 export interface WireType {
 	id: string;
 	replace?: Record<string, string>;
+	replaceTo?: Record<string, string>;
+	replaceFrom?: Record<string, string>;
+	toStackType?: string;
+	fromStackType?: string;
 	toStackAllocatesWithAlign?: number;
 	toStack?($1: unknown): void;
 	fromStack?(): void;
@@ -56,38 +60,38 @@ export class WireTypes {
 	}
 
 	toStack(type: Type, spec: ToStackSpec) {
-		const wireType = this.lookup(type);
+		const wireType = type.wireType || (type.wireType = this.lookup(type));
 		const snippet = wireType && this.snippets[wireType.id];
 		if(!snippet) return;
 
 		const toStack = snippet.toStack;
 		let wireCount = 0;
-		const code = transform(toStack.code.replace(
+		const code = transform(toStack.code, wireType.replaceTo || wireType.replace).replace(
 			/(\$args[ \t]*\+[ \t]*)([0-9]+)/g,
 			(_, args, num) => {
 				if(+num >= wireCount) wireCount = +num + 1;
 				return args + (+num + spec.wirePos);
 			}
-		).replace(/\$1/g, spec.name).replace(/\n/g, '\n' + spec.indent), wireType.replace);
+		).replace(/\$1/g, spec.name).replace(/\n/g, '\n' + spec.indent);
 
 		return {
 			code,
 			wireCount,
-			jsType: toStack.jsType,
+			jsType: wireType.toStackType || toStack.jsType,
 			allocatesWithAlign: wireType.toStackAllocatesWithAlign
 		};
 	}
 
 	fromStack(type: Type, spec: FromStackSpec) {
-		const wireType = this.lookup(type);
+		const wireType = type.wireType || (type.wireType = this.lookup(type));
 		const snippet = wireType && this.snippets[wireType.id];
 		if(!snippet) return;
 
 		const fromStack = snippet.fromStack;
 
 		return {
-			code: transform(fromStack.code.replace(/\n/g, '\n' + spec.indent), wireType.replace),
-			jsType: fromStack.jsType
+			code: transform(fromStack.code, wireType.replaceFrom || wireType.replace).replace(/\n/g, '\n' + spec.indent),
+			jsType: wireType.fromStackType || fromStack.jsType
 		};
 	}
 
@@ -210,7 +214,7 @@ export class WireTypes {
 				};
 
 			case TypeKind.Struct: return {
-				id: '7baf70067cdb3db41f490088fe42714fdb1b97a8',
+				id: '0e95227d748be1577f9cc1628045037372d2fe2e',
 				replace: {
 					'0x0': '' + type.len
 				},
@@ -224,6 +228,40 @@ export class WireTypes {
 					const $ret: $OpaqueStruct = new $OpaqueStruct($mem.U8.slice($top * 8, $top * 8 + 0x0));
 				}
 			};
+
+			case TypeKind.Optional: {
+				// TODO: Don't NaN-box special values if child is a float, which could hold those values without the special meaning.
+				const childWire = child!.wireType || (child!.wireType = this.lookup(child!));
+				const childSnippet = this.snippets[childWire.id]!;
+
+				return {
+					id: 'cf93edb7e54668bf5b31e2bca3f99e13566b24e6',
+					replaceTo: {
+						'\\/\\/ CHILD': transform(childSnippet.toStack.code, childWire.replaceTo || childWire.replace).replace(/\n/g, '\n\t').replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=/g, '$ret =')
+					},
+					replaceFrom: {
+						'\\/\\/ CHILD': transform(childSnippet.fromStack.code, childWire.replaceFrom || childWire.replace).replace(/\n/g, '\n\t').replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=/g, '$ret =')
+					},
+					toStackAllocatesWithAlign: childWire.toStackAllocatesWithAlign,
+					toStackType: '(' + childSnippet.toStack.jsType + ') | null',
+					toStack($1: any) {
+						if($1 === null) {
+							$mem.U32[($args + 0) * 2 + 1] = 0x7ff40000;
+						} else {
+							// Ensure null status is cleared.
+							$F64[$args + 0] = 0;
+							// CHILD
+						}
+					},
+					fromStackType: '(' + childSnippet.fromStack.jsType + ') | null',
+					fromStack() {
+						let $ret: any;
+						if($mem.U32[($args + 0) * 2 + 1] == 0x7ff40000) $ret = null; else {
+							// CHILD
+						}
+					}
+				};
+			}
 		}
 
 		throw new Error('Unknown type');

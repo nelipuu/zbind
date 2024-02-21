@@ -1,4 +1,5 @@
 import { Memory, decoder } from './index';
+import type { WireType } from './wiretype';
 
 export enum TypeKind {
 	Unknown = 0,
@@ -81,4 +82,5 @@ export class Type {
 	len: number;
 	kind: TypeKind;
 	flags: number;
+	wireType?: WireType;
 }

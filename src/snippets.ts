@@ -88,7 +88,7 @@ export function readSnippets(lines: string[]) {
 			jsType = match[3];
 		}
 
-		match = line.match(/^[ \t]*(let|const)[ \t]+\$ret[ \t]*:[ \t]*([^=]+)=/);
+		match = line.match(/^[ \t]*(let|const)[ \t]+\$ret[ \t]*:[ \t]*([^=;]+)[=;]/);
 		if(match) {
 			block.jsType = match[2].replace(/[ \t]+$/, '');
 		}

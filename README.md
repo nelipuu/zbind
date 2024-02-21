@@ -84,8 +84,9 @@ npm install --save-dev @oven/zig
 | `u64`, `i64` | `bigint`            |       |
 | `[]u8`       | `Slice`, `string`   | `Slice` of `u8` has a `toString` method for automatic coercion.<br>Strings are passed through a stack. |
 | `struct`     | `OpaqueStruct`      | TypeScript takes ownership of opaque structs passed by value<br>such as `std.mem.Allocator` |
+| `?`any above | any above `\| null` |       |
 
-Support is planned for more slice types, pointers, nullables, error unions, callbacks and accessing struct fields and methods.
+Support is planned for more slice types, pointers, error unions, callbacks and accessing struct fields and methods.
 
 ## Architecture
 

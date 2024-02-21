@@ -20,7 +20,7 @@ pub fn FunctionWrapper(comptime func: anytype) !type {
 
 		for(params, 0..) |param, arg_num| {
 			const Type = param.type orelse return error.MissingType;
-			const Wire = WireType(Type, .{});
+			const Wire = WireType(Type);
 			arg_types = arg_types ++ [_]*const typeid.TypeSpec{typeid.typeId(Type)};
 			arg_wire_offsets = arg_wire_offsets ++ ([_]u32{wire_pos});
 			wire_pos += Wire.count;
@@ -53,7 +53,7 @@ pub fn FunctionWrapper(comptime func: anytype) !type {
 
 			inline for(arg_wire_offsets, &args) |wire_pos, *arg| {
 				// Offset by 1 because first entry is stack frame f64 size.
-				arg.* = WireType(@TypeOf(arg.*), .{}).fromStack(mem.F64 + stack_top + 1 + wire_pos);
+				arg.* = WireType(@TypeOf(arg.*)).fromStack(mem.F64 + stack_top + 1 + wire_pos);
 			}
 
 			const stack_before = stack_top;
@@ -61,7 +61,7 @@ pub fn FunctionWrapper(comptime func: anytype) !type {
 			const result = @call(.auto, func, args);
 			stack_top = stack_before;
 
-			WireType(Result, .{}).toStack(result, mem.F64 + stack_top);
+			WireType(Result).toStack(result, mem.F64 + stack_top);
 		}
 	};
 }

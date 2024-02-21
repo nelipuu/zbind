@@ -71,7 +71,7 @@ export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 	const fromStack = wireTypes.fromStack(Type.get(spec.argIds[0]), { indent: '\t\t' });
 	if(fromStack && fromStack.code) {
 		const code = fromStack.code;
-		const short = code.replace(/(let|const)[ \t]+\$ret[ \t]*:[^=\n]+=[ \t]*([^;\n]+);$/, 'return $2;');
+		const short = code.replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=[ \t]*([^;\n]+);$/, 'return $2;');
 		epilogue.push(short);
 		if(short == code) epilogue.push('return $ret;');
 	}
