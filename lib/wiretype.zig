@@ -90,12 +90,12 @@ pub fn WireType(comptime Type: type) type {
 				pub const count = @max(Child.count, 1);
 
 				pub inline fn fromStack(wire: [*]const f64) Type {
-					return if(@as([*]const u32, @ptrCast(wire))[1] == 0x7ff40000) null else Child.fromStack(wire);
+					return if(@as([*]const u32, @ptrCast(wire))[1] == 0x7ffc0000) null else Child.fromStack(wire);
 				}
 
 				pub inline fn toStack(value: Type, wire: [*]f64) void {
 					if(value == null) {
-						@as([*]u32, @ptrCast(wire))[1] = 0x7ff40000;
+						@as([*]u32, @ptrCast(wire))[1] = 0x7ffc0000;
 					} else {
 						// Ensure null status is cleared.
 						wire[0] = 0;

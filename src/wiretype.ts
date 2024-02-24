@@ -12,6 +12,7 @@ import {
 
 export interface WireType {
 	id: string;
+	include?: Record<string, boolean>;
 	replace?: Record<string, string>;
 	replaceTo?: Record<string, string>;
 	replaceFrom?: Record<string, string>;
@@ -42,7 +43,21 @@ declare const $intMagic: number;
 declare const $getMemory: () => Memory;
 declare let $top: number;
 
-function transform(code: string, replace?: Record<string, string>) {
+function transform(code: string, include?: Record<string, boolean>, replace?: Record<string, string>) {
+	if(include) {
+		const re = new RegExp('//[ \t]*if:(' + Object.keys(include).join('|') + ')');
+		const lines: string[] = [];
+
+		for(let line of code.split('\n')) {
+			const match = line.match(re);
+			if(match) {
+				if(include[match[1]]) lines.push(line.split('//')[0].replace(/[ \t]+$/, ''));
+			} else lines.push(line);
+		}
+
+		code = lines.join('\n');
+	}
+
 	if(replace) {
 		for(const needle of Object.keys(replace)) {
 			code = code.replace(new RegExp(needle, 'g'), replace[needle]);
@@ -66,7 +81,7 @@ export class WireTypes {
 
 		const toStack = snippet.toStack;
 		let wireCount = 0;
-		const code = transform(toStack.code, wireType.replaceTo || wireType.replace).replace(
+		const code = transform(toStack.code, wireType.include, wireType.replaceTo || wireType.replace).replace(
 			/(\$args[ \t]*\+[ \t]*)([0-9]+)/g,
 			(_, args, num) => {
 				if(+num >= wireCount) wireCount = +num + 1;
@@ -90,7 +105,7 @@ export class WireTypes {
 		const fromStack = snippet.fromStack;
 
 		return {
-			code: transform(fromStack.code, wireType.replaceFrom || wireType.replace).replace(/\n/g, '\n' + spec.indent),
+			code: transform(fromStack.code, wireType.include, wireType.replaceFrom || wireType.replace).replace(/\n/g, '\n' + spec.indent),
 			jsType: wireType.fromStackType || fromStack.jsType
 		};
 	}
@@ -143,7 +158,7 @@ export class WireTypes {
 					};
 				} else {
 					if(type.flags & 1) return {
-						id: '469d17a63d4d25bc69dad553784125f45ea23a7a',
+						id: '76f736646fef81549ad0fa07fb113e29ffc429c4',
 						replace: {
 							'I8': 'I' + type.len,
 							'\\* 8': '* ' + (64 / type.len),
@@ -151,13 +166,13 @@ export class WireTypes {
 						},
 						toStack($1: number) {
 							if($1 < -128 || $1 >= 128) throw new RangeError($1 + ' is out of range');
-							$mem.I8[($args + 0) * 8] = ~~$1;
+							$mem.I8[($args + 0) * 8] = $1;
 						},
 						fromStack() {
 							const $ret: number = $mem.I8[($args + 0) * 8];
 						}
 					}; else return {
-						id: '11552aab0aa558194d08aeb2f1cba4d91891b58c',
+						id: '48ac4ea3f892e602134f91fc41e45fad41cc7f7e',
 						replace: {
 							'U8': 'U' + type.len,
 							'\\* 8': '* ' + (64 / type.len),
@@ -165,7 +180,7 @@ export class WireTypes {
 						},
 						toStack($1: number) {
 							if($1 < 0 || $1 >= 256) throw new RangeError($1 + ' is out of range');
-							$F64[$args + 0] = ($1 >>> 0) + $intMagic;
+							$mem.U8[($args + 0) * 8] = $1;
 						},
 						fromStack() {
 							const $ret: number = $mem.U8[($args + 0) * 8];
@@ -233,30 +248,37 @@ export class WireTypes {
 				// TODO: Don't NaN-box special values if child is a float, which could hold those values without the special meaning.
 				const childWire = child!.wireType || (child!.wireType = this.lookup(child!));
 				const childSnippet = this.snippets[childWire.id]!;
+				let leaf = child!;
+				while(leaf.child) leaf = leaf.child;
 
 				return {
-					id: 'cf93edb7e54668bf5b31e2bca3f99e13566b24e6',
+					id: '5ed306f0cfe0f89f44aeb624cdff7988e99461a5',
+					include: {
+						// Include isNaN branch only if child type is a float.
+						'isFloat': leaf.kind == TypeKind.Float
+					},
 					replaceTo: {
-						'\\/\\/ CHILD': transform(childSnippet.toStack.code, childWire.replaceTo || childWire.replace).replace(/\n/g, '\n\t').replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=/g, '$ret =')
+						'\\/\\/ CHILD': transform(childSnippet.toStack.code, childWire.include, childWire.replaceTo || childWire.replace).replace(/\n/g, '\n\t').replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=/g, '$ret =')
 					},
 					replaceFrom: {
-						'\\/\\/ CHILD': transform(childSnippet.fromStack.code, childWire.replaceFrom || childWire.replace).replace(/\n/g, '\n\t').replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=/g, '$ret =')
+						'\\/\\/ CHILD': transform(childSnippet.fromStack.code, childWire.include, childWire.replaceFrom || childWire.replace).replace(/\n/g, '\n\t').replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=/g, '$ret =')
 					},
 					toStackAllocatesWithAlign: childWire.toStackAllocatesWithAlign,
 					toStackType: '(' + childSnippet.toStack.jsType + ') | null',
 					toStack($1: any) {
-						if($1 === null) {
-							$mem.U32[($args + 0) * 2 + 1] = 0x7ff40000;
-						} else {
-							// Ensure null status is cleared.
-							$F64[$args + 0] = 0;
+						{
+							let $flag = $1 === null ? 0x7ffc0000 : 0;
+							if(isNaN($1)) $flag = 0x7ff80000; // if:isFloat
+							$mem.U32[($args + 0) * 2 + 1] = $flag;
+						}
+						if($1 !== null) {
 							// CHILD
 						}
 					},
 					fromStackType: '(' + childSnippet.fromStack.jsType + ') | null',
 					fromStack() {
 						let $ret: any;
-						if($mem.U32[($args + 0) * 2 + 1] == 0x7ff40000) $ret = null; else {
+						if($mem.U32[($args + 0) * 2 + 1] == 0x7ffc0000) $ret = null; else {
 							// CHILD
 						}
 					}

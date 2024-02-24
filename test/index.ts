@@ -176,9 +176,11 @@ test('Passing floating point types', (equals, throws) => {
 			equals(1 / fn(val)!, 1 / val);
 		}
 
-		for(const val of [Infinity, -Infinity]) {
+		for(const val of [0, Infinity, -Infinity]) {
 			equals(fn(val), val);
 		}
+
+		equals(isNaN(fn(0/0)), true);
 	}
 });
 
