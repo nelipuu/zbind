@@ -41,6 +41,8 @@ declare const $F64: Float64Array;
 declare const $args: number;
 declare const $intMagic: number;
 declare const $getMemory: () => Memory;
+declare const $slots: CallableFunction[];
+declare let $slot: number;
 declare let $top: number;
 
 function transform(code: string, include?: Record<string, boolean>, replace?: Record<string, string>) {
@@ -147,9 +149,12 @@ export class WireTypes {
 							const $ret: bigint = $mem.I64[$args + 0];
 						}
 					}; else return {
-						id: '75f2fa9c8172eb4191bbbab251f44e227c46b5af',
+						id: '61f038672ea268e2b989586af896aa20cd377e8a',
 						toStack($1: number | bigint) {
-							if($1 < 0) throw new RangeError($1 + ' is out of range');
+							if($1 < 0) {
+								$top = $args;
+								throw new RangeError($1 + ' is out of range');
+							}
 							$mem.U64[$args + 0] = BigInt($1);
 						},
 						fromStack() {
@@ -158,28 +163,34 @@ export class WireTypes {
 					};
 				} else {
 					if(type.flags & 1) return {
-						id: '76f736646fef81549ad0fa07fb113e29ffc429c4',
+						id: '36d391731307a6d7bdb898755bd102d87ba117f7',
 						replace: {
 							'I8': 'I' + type.len,
 							'\\* 8': '* ' + (64 / type.len),
 							'128': '' + Math.pow(2, type.len - 1)
 						},
 						toStack($1: number) {
-							if($1 < -128 || $1 >= 128) throw new RangeError($1 + ' is out of range');
+							if($1 < -128 || $1 >= 128) {
+								$top = $args;
+								throw new RangeError($1 + ' is out of range');
+							}
 							$mem.I8[($args + 0) * 8] = $1;
 						},
 						fromStack() {
 							const $ret: number = $mem.I8[($args + 0) * 8];
 						}
 					}; else return {
-						id: '48ac4ea3f892e602134f91fc41e45fad41cc7f7e',
+						id: 'b6e91b95d5dc08055a7ab7010438025b6ffade39',
 						replace: {
 							'U8': 'U' + type.len,
 							'\\* 8': '* ' + (64 / type.len),
 							'256': '' + Math.pow(2, type.len)
 						},
 						toStack($1: number) {
-							if($1 < 0 || $1 >= 256) throw new RangeError($1 + ' is out of range');
+							if($1 < 0 || $1 >= 256) {
+								$top = $args;
+								throw new RangeError($1 + ' is out of range');
+							}
 							$mem.U8[($args + 0) * 8] = $1;
 						},
 						fromStack() {
@@ -196,6 +207,18 @@ export class WireTypes {
 					const $ret: number = $mem.F64[$args + 0];
 				}
 			};
+
+			case TypeKind.Pointer:
+				if(child!.kind == TypeKind.Fn) {
+					return {
+						id: '4073b493a38864014f0e61d8534a78add172a459',
+						toStack($1: CallableFunction) {
+							$slots[$slot++] = $1;
+						}
+					};
+				}
+
+				break;
 
 			case TypeKind.Slice:
 				if(child!.kind == TypeKind.Int && child!.len == 8) return {
@@ -229,7 +252,7 @@ export class WireTypes {
 				};
 
 			case TypeKind.Struct: return {
-				id: '0e95227d748be1577f9cc1628045037372d2fe2e',
+				id: '06f24e5e606308211211b42f38216d5c18c8e269',
 				replace: {
 					'0x0': '' + type.len
 				},
@@ -240,12 +263,13 @@ export class WireTypes {
 					$top += 0x0 / 8;
 				},
 				fromStack() {
+					// TODO: Maybe this should also first have a pointer pointing to the data for future-proofing (callback functions with multiple arguments), handle null and error union better on the side
 					const $ret: $OpaqueStruct = new $OpaqueStruct($mem.U8.slice($top * 8, $top * 8 + 0x0));
 				}
 			};
 
 			case TypeKind.Optional: {
-				// TODO: Don't NaN-box special values if child is a float, which could hold those values without the special meaning.
+				// TODO: Normalize floats to a single NaN before "boxing" and always reserve space before a non-null struct return value passed by value to avoid aliasing with NaN flag.
 				const childWire = child!.wireType || (child!.wireType = this.lookup(child!));
 				const childSnippet = this.snippets[childWire.id]!;
 				let leaf = child!;

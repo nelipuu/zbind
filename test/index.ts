@@ -180,7 +180,7 @@ test('Passing floating point types', (equals, throws) => {
 			equals(fn(val), val);
 		}
 
-		equals(isNaN(fn(0/0)), true);
+		equals(isNaN(fn(0 / 0)!), true);
 	}
 });
 
@@ -194,4 +194,10 @@ test('Passing strings', (equals) => {
 test('Passing allocators', (equals) => {
 	const allocator = lib.get_allocator();
 	equals(lib.use_allocator(allocator) > 0, true);
+});
+
+test('Passing callbacks', (equals) => {
+	equals(lib.callback_bool(() => { }, true), void 0);
+	equals(lib.callback_i8(() => { }, 0), void 0);
+	equals(lib.callback_u8(() => { }, 0), void 0);
 });

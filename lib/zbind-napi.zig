@@ -8,10 +8,14 @@ const napi = @import("napi.zig").napi;
 pub const Env = napi.napi_env;
 pub const Value = napi.napi_value;
 
+pub var callback: napi.napi_ref = undefined;
+pub var callback_env: Env = undefined;
+
 const Caller = struct {
 	pub fn init(comptime func: fn () void) type {
 		return struct {
-			pub fn call(_: Env, _: napi.napi_callback_info) callconv(.C) Value {
+			pub fn call(env: Env, _: napi.napi_callback_info) callconv(.C) Value {
+				callback_env = env;
 				@call(.always_inline, func, .{});
 				return null;
 			}
@@ -34,21 +38,26 @@ fn Module(comptime API: type) type {
 	return struct {
 		pub fn init(env: Env, info: napi.napi_callback_info) callconv(.C) Value {
 			fail: {
-				var argc: usize = 1;
-				var argv: [1]Value = undefined;
+				var argc: usize = 2;
+				var argv: [2]Value = undefined;
 
 				if(napi.napi_get_cb_info(env, info, &argc, &argv, null, null) != napi.napi_ok) break :fail;
+
+				var value_type: napi.napi_valuetype = undefined;
+
+				// argv[1] should be a callback function.
+				if(argc < 2 or napi.napi_typeof(env, argv[1], &value_type) != napi.napi_ok or value_type != napi.napi_function) break :fail;
+				if(napi.napi_create_reference(env, argv[1], 1, &callback) != napi.napi_ok) break :fail;
 
 				// argv[0] should be an array of objects like { buf: ArrayBuffer, ptr: number },
 				// so more memory can be allocated in Zig without immediately coordinating with JS.
 				var is_array: bool = undefined;
 				var has_element: bool = undefined;
 
-				if(argc < 1 or napi.napi_is_array(env, argv[0], &is_array) != napi.napi_ok or !is_array) break :fail;
+				if(napi.napi_is_array(env, argv[0], &is_array) != napi.napi_ok or !is_array) break :fail;
 				if(napi.napi_has_element(env, argv[0], 0, &has_element) != napi.napi_ok or !has_element) break :fail;
 
 				var page: Value = undefined;
-				var value_type: napi.napi_valuetype = undefined;
 
 				if(napi.napi_get_element(env, argv[0], 0, &page) != napi.napi_ok) break :fail;
 				if(napi.napi_typeof(env, page, &value_type) != napi.napi_ok or value_type != napi.napi_object) break :fail;

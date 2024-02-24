@@ -6,20 +6,25 @@ export interface MethodSpec {
 	name?: string;
 	num: number;
 	argIds: Float64Array;
+	slot: number,
+	slots: number;
 }
 
 export function getMethods(mem: Memory, pos: number) {
 	const methods: MethodSpec[] = [];
 	const count = mem.F64[pos++];
+	let slot = 0;
 
 	for(let num = 0; num < count; ++num) {
 		const namePos = mem.F64[pos++];
+		const slots = mem.F64[pos++];
 		const arity = mem.F64[pos++];
 		const argIds = mem.F64.subarray(pos, pos + arity);
 		pos += arity;
 
 		const namePosEnd = mem.F64[pos];
-		methods.push({ name: decoder.decode(mem.U8.subarray(namePos, namePosEnd)), num, argIds });
+		methods.push({ name: decoder.decode(mem.U8.subarray(namePos, namePosEnd)), num, argIds, slot, slots });
+		slot += slots;
 	}
 
 	return methods;
@@ -28,9 +33,7 @@ export function getMethods(mem: Memory, pos: number) {
 export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 	const arity = spec.argIds.length - 1;
 	const params: string[] = [];
-	const prologue = ['', 'const $F64 = $mem.F64;', 'const $args = $top;'];
 	const body: string[] = [''];
-	const epilogue: string[] = ['', '$mem = $getMemory();'];
 
 	// Leave space for stack frame f64 size.
 	let wirePos = 1;
@@ -58,29 +61,32 @@ export function emitWrapper(wireTypes: WireTypes, spec: MethodSpec): string {
 		wirePos += toStack.wireCount;
 	}
 
-	if(allocatesWithAlign) {
-		prologue.push('$top += ' + wirePos + ';');
-		body.push('$F64[$args] = $top + $intMagic;');
-		epilogue.push('$top = $args;');
-	} else {
-		prologue.push('$F64[$args] = $top + ' + wirePos + ' + $intMagic;');
-	}
+	const prologue = [
+		'',
+		'const $F64 = $mem.F64;',
+		'const $args = $top;',
+		'$top += ' + wirePos + ';',
+		'$F64[$args] = $top + $intMagic;'
+	];
+
+	if(spec.slots) prologue.push('let $slot = ' + spec.slot + ';');
 
 	body.push('$wrappers[' + spec.num + ']();');
+	body.push('$mem = $getMemory();');
+	body.push('$top = $args;');
 
 	const fromStack = wireTypes.fromStack(Type.get(spec.argIds[0]), { indent: '\t\t' });
 	if(fromStack && fromStack.code) {
 		const code = fromStack.code;
 		const short = code.replace(/(let|const)[ \t]+\$ret[ \t]*:[^=;\n]+=[ \t]*([^;\n]+);$/, 'return $2;');
-		epilogue.push(short);
-		if(short == code) epilogue.push('return $ret;');
+		body.push(short);
+		if(short == code) body.push('return $ret;');
 	}
 
 	return (
 		'\tfunction ' + spec.name + '(' + params.join(', ') + '): ' + (fromStack ? fromStack.jsType : 'void') + ' {' +
 		prologue.join('\n\t\t') +
 		body.join('\n\t\t') +
-		epilogue.join('\n\t\t') +
 		'\n\t}\n'
 	);
 }

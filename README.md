@@ -90,7 +90,7 @@ Support is planned for more slice types, pointers, error unions, callbacks and a
 
 ## Architecture
 
-Generated TypeScript bindings are identical for Wasm and Node-API. Values are marshalled using a separate one-megabyte stack mostly accessed through a `[]f64` / `Float64Array`. Since `f64` can represent 53-bit integers, it fits pointers to memory as well.
+Generated TypeScript bindings are identical for Wasm and Node-API. Values are marshalled using a separate one-megabyte stack mostly accessed through a `[]f64` / `Float64Array`. Since `f64` can represent 53-bit integers, it fits pointers to memory as well. `null` is passed as a special NaN bit pattern.
 
 When compiled, `zbind.zig` analyzes argument and return types of Zig functions at comptime, stores the metadata in a compact binary representation and defines special endpoints for querying functions and types. It generates Zig wrapper functions for Zig methods to handle type marshalling and reports a list of pointers to those functions when initialized.
 

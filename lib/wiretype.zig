@@ -1,4 +1,6 @@
-pub fn WireType(comptime Type: type) type {
+const callback = @import("callback.zig").callback;
+
+pub fn WireType(comptime Type: type, comptime slot: u32) type {
 	return switch(@typeInfo(Type)) {
 		.Void => struct {
 			pub const count = 0;
@@ -60,8 +62,48 @@ pub fn WireType(comptime Type: type) type {
 					@as(*u32, @ptrCast(&wire[1])).* = @truncate(value.len);
 				}
 			},
-			else => struct {
-				pub const count = 1;
+			else => {
+				const child_info = @typeInfo(info.child);
+
+				if(child_info == .Fn) {
+					const args = child_info.Fn.params;
+					const Return = child_info.Fn.return_type.?;
+
+					return struct {
+						pub const count = 0;
+						pub const slots = 1;
+
+						pub inline fn fromStack(wire: [*]const f64) Type {
+							// TODO: Could we get the slot number from wire?
+							// _ = wire;
+							return switch(args.len) {
+								0 => struct {
+									pub fn call() Return {
+										callback(slot);
+									}
+								},
+								1 => struct {
+									pub fn call(a0: args[0].type.?) Return {
+										WireType(args[0].type.?, 0).toStack(a0, wire);
+										callback(slot);
+									}
+								},
+								2 => struct {
+									pub fn call(a0: args[0].type.?, a1: args[1].type.?) Return {
+										WireType(args[0].type.?, 0).toStack(a0, wire);
+										WireType(args[1].type.?, 0).toStack(a1, wire);
+										callback(slot);
+									}
+								},
+								else => @compileError("Unsupported number of arguments for callback")
+							}.call;
+						}
+					};
+				}
+
+				return struct {
+					pub const count = 1;
+				};
 			}
 		},
 
@@ -84,7 +126,7 @@ pub fn WireType(comptime Type: type) type {
 		},
 
 		.Optional => |info| {
-			const Child = WireType(info.child);
+			const Child = WireType(info.child, slot);
 
 			return struct {
 				pub const count = @max(Child.count, 1);
@@ -98,14 +140,14 @@ pub fn WireType(comptime Type: type) type {
 						@as([*]u32, @ptrCast(wire))[1] = 0x7ffc0000;
 					} else {
 						// Ensure null status is cleared.
-						wire[0] = 0;
+						@as([*]u32, @ptrCast(wire))[1] = 0;
 						Child.toStack(value.?, wire);
 					}
 				}
 			};
 		},
 		.ErrorUnion => |info| {
-			return WireType(info.child);
+			return WireType(info.child, slot);
 		},
 
 		else => @compileError("Cannot handle type")

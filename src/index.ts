@@ -34,7 +34,7 @@ export const decoder = new TextDecoder();
 export const encoder = new TextEncoder();
 
 export class Slice {
-	constructor(private getMemory: () => Memory, public ptr: number, public len: number) {}
+	constructor(private getMemory: () => Memory, public ptr: number, public len: number) { }
 
 	toStack(getMemory: () => Memory, dst: Memory, top: number, arg: number) {
 		const ptr = this.ptr;
@@ -61,7 +61,7 @@ export class Slice {
 }
 
 export class OpaqueStruct {
-	constructor(public data: Uint8Array) {}
+	constructor(public data: Uint8Array) { }
 }
 
 interface Reflection {
@@ -72,9 +72,9 @@ interface Reflection {
 	wrappers: CallableFunction[];
 }
 
-function bindNapi(path: string): Reflection {
+function bindNapi(path: string, callback: () => void): Reflection {
 	const table = {} as {
-		init(pages: Page[]): CallableFunction[],
+		init(pages: Page[], callback: () => void): CallableFunction[],
 		getTypes(): void,
 		getType(): void
 	};
@@ -84,7 +84,7 @@ function bindNapi(path: string): Reflection {
 	const pages: Page[] = [{ buffer, ptr: 0 }];
 
 	(process as any).dlopen({ exports: table }, path);
-	const wrappers = table.init(pages);
+	const wrappers = table.init(pages, callback);
 
 	const mem = bindMemory(pages[0].ptr, buffer);
 
@@ -97,7 +97,7 @@ function bindNapi(path: string): Reflection {
 	};
 }
 
-function bindWasm(source: BufferSource | string): Reflection {
+function bindWasm(source: BufferSource | string, callback: () => void): Reflection {
 	if(typeof source == 'string') {
 		if(typeof require != 'function') throw new Error('Cannot synchronously acquire, pass contents instead: ' + source);
 		// Bun eval workaround, need to store in a local variable.
@@ -121,7 +121,9 @@ function bindWasm(source: BufferSource | string): Reflection {
 
 	const wasi = makeWasi(memory);
 	const module = new WebAssembly.Module(source);
-	const imports: WebAssembly.Imports = {};
+	const imports: WebAssembly.Imports = {
+		env: { _callback: callback }
+	};
 
 	for(let dep of WebAssembly.Module.imports(module)) {
 		if(dep.kind == 'function' && /^wasi_/.test(dep.module)) {
@@ -163,6 +165,6 @@ function bindWasm(source: BufferSource | string): Reflection {
 	};
 }
 
-export function $bind(source: BufferSource | string): Reflection {
-	return typeof source == 'string' && !/\.wasm$/.test(source) ? bindNapi(source) : bindWasm(source);
+export function $bind(source: BufferSource | string, callback: () => void = () => { }): Reflection {
+	return typeof source == 'string' && !/\.wasm$/.test(source) ? bindNapi(source, callback) : bindWasm(source, callback);
 }

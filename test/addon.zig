@@ -7,6 +7,11 @@ fn Test(comptime Type: type) type {
 		pub fn identity(value: Type) Type {
 			return value;
 		}
+
+		pub fn callback(func: *const fn () void, value: Type) void {
+			_ = value;
+			func();
+		}
 	};
 }
 
@@ -56,6 +61,11 @@ const API = struct {
 		const result: f64 = @floatFromInt(@intFromPtr(ptr));
 		return result;
 	}
+
+	pub const callback_bool = Test(bool).callback;
+
+	pub const callback_i8 = Test(i8).callback;
+	pub const callback_u8 = Test(u8).callback;
 };
 
 comptime {

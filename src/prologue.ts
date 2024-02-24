@@ -14,6 +14,7 @@ function $defaultPath() {
 const $decoder = new TextDecoder();
 const $encoder = new TextEncoder();
 const $intMagic = Math.pow(2, 52);
+const $slots: CallableFunction[] = [];
 
 export function $create() {
 	let $getMemory: () => $Memory;
@@ -21,8 +22,13 @@ export function $create() {
 	let $top: number;
 	let $mem = $lazyMemory(() => ($init(), $mem));
 
+	function $callback() {
+		// TODO: Slot-specific type conversion.
+		$slots[$mem.F64[$top]]();
+	}
+
 	function $init(source: BufferSource | string = $defaultPath()) {
-		const deps = $bind(source);
+		const deps = $bind(source, $callback);
 		$getMemory = deps.getMemory;
 		$wrappers = deps.wrappers;
 		$top = deps.stackBase;
