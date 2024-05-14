@@ -43,7 +43,7 @@ pub fn FunctionWrapper(comptime func: anytype, comptime slot: u32) !type {
 	// Tuple type capable of holding all Zig parameters of the called Zig function, for passing to @call.
 	const Args = @Type(.{
 		.Struct = .{ //
-			.layout = .Auto,
+			.layout = if(@hasField(std.builtin.Type.ContainerLayout, "Auto")) .Auto else .auto,
 			.fields = arg_fields,
 			.decls = &.{},
 			.is_tuple = true

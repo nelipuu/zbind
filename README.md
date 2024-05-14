@@ -4,7 +4,7 @@
 
 `zbind` generates TypeScript bindings for calling Zig code compiled to native code or Wasm, in Node.js or Bun or browsers.
 
-Supported Zig versions are 0.11.0 - Zig 0.12.0-dev.2063 (possibly later as well)
+Supported Zig versions are 0.11.0 - 0.12.0 (possibly later as well)
 
 Example Zig code [`lib/main.zig`](example/lib/main.zig):
 

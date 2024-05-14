@@ -42,12 +42,6 @@ pub fn build(
 	const name = std.fs.path.basename(config.out);
 	const target = builder.standardTargetOptions(.{});
 	const optimize = builder.standardOptimizeOption(.{});
-	const lib = builder.addSharedLibrary(.{ //
-		.name = name,
-		.root_source_file = .{ .path = config.main },
-		.target = target,
-		.optimize = optimize
-	});
 
 	const zbind = builder.createModule(if(@hasField(std.Build.Module, "root_source_file")) .{
 		.root_source_file = .{ //
@@ -62,6 +56,15 @@ pub fn build(
 	});
 
 	const arch = (if(@hasField(@TypeOf(target), "cpu_arch")) target else target.query).cpu_arch;
+	const use_executable = (arch == .wasm32) and builtin.zig_version.order(std.SemanticVersion.parse("0.12.0") catch unreachable) != .lt;
+	const options = .{ //
+		.name = name,
+		.root_source_file = .{ .path = config.main },
+		.target = target,
+		.optimize = optimize
+	};
+
+	const lib = if(use_executable) builder.addExecutable(options) else builder.addSharedLibrary(options);
 
 	if(arch == .wasm32) {
 		lib.export_memory = true;

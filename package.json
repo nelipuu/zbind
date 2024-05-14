@@ -23,10 +23,9 @@
     "test": "./run src/patch && tsc -p src && npm run test-napi && npm run test-wasm"
   },
   "devDependencies": {
-    "@oven/zig": "^0.12.0-dev.1286",
-    "@types/node": "^20.11.8",
+    "@types/node": "^20.12.12",
     "node-api-headers": "^1.1.0",
-    "typescript": "^5.3.3",
+    "typescript": "^5.4.5",
     "zbind": "file:."
   }
 }
