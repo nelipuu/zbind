@@ -50,7 +50,7 @@ pub fn build(builder: *std.Build) !void {
 
 The `zbind.build` call returns a `*std.Build.Step.Compile` object for linking with other libraries if needed.
 
-Run these shell commands to install the Zig compiler, compile the code and generate TypeScript bindings:
+Run these shell commands to compile the code and generate TypeScript bindings:
 
 ```bash
 npm install --save zbind
