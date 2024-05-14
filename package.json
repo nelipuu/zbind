@@ -1,6 +1,6 @@
 {
   "name": "zbind",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Zig-TypeScript binding generator",
   "author": "Juha Järvi",
   "license": "0BSD",
