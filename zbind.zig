@@ -2,6 +2,11 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 pub const ResolvedTarget = @typeInfo(@TypeOf(std.Build.standardTargetOptions)).Fn.return_type.?;
+pub const BuilderPath = if(!@hasField(std.Build, "path") and !@hasDecl(std.Build, "path")) std.Build.LazyPath else @typeInfo(@TypeOf(std.Build.path)).Fn.return_type.?;
+
+fn builder_path(builder: *std.Build, path: []const u8) BuilderPath {
+	return if(!@hasField(std.Build, "path") and !@hasDecl(std.Build, "path")) .{ .path = path } else builder.path(path);
+}
 
 pub fn init(comptime API: type) void {
 	if(builtin.cpu.arch == .wasm32) {
@@ -49,7 +54,7 @@ pub fn build(
 
 	const zbind = builder.createModule(if(@hasField(std.Build.Module, "root_source_file")) .{
 		.root_source_file = .{ //
-			.path = @src().file
+			.cwd_relative = @src().file
 		},
 		.imports = &.{}
 	} else .{
@@ -63,7 +68,7 @@ pub fn build(
 	const use_executable = (arch == .wasm32) and builtin.zig_version.order(std.SemanticVersion.parse("0.12.0") catch unreachable) != .lt;
 	const options = .{ //
 		.name = name,
-		.root_source_file = .{ .path = config.main },
+		.root_source_file = builder_path(builder, config.main),
 		.target = target,
 		.optimize = optimize,
 		.single_threaded = true
@@ -87,7 +92,7 @@ pub fn build(
 			"../node-api-headers/include"
 		});
 
-		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ .path = include_path });
+		(if(@hasDecl(@TypeOf(zbind.*), "addIncludePath")) zbind else lib).addIncludePath(.{ .cwd_relative = include_path });
 	}
 
 	if(@hasDecl(@TypeOf(lib.*), "addModule")) lib.addModule("zbind", zbind) else lib.root_module.addImport("zbind", zbind);
