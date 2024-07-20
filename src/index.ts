@@ -34,7 +34,7 @@ export const decoder = new TextDecoder();
 export const encoder = new TextEncoder();
 
 export class Slice {
-	constructor(private getMemory: () => Memory, public ptr: number, public len: number) { }
+	constructor(public getMemory: () => Memory, public ptr: number, public len: number) { }
 
 	toStack(getMemory: () => Memory, dst: Memory, top: number, arg: number) {
 		const ptr = this.ptr;
