@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+pub const ResolvedTarget = @typeInfo(@TypeOf(std.Build.standardTargetOptions)).Fn.return_type.?;
+
 pub fn init(comptime API: type) void {
 	if(builtin.cpu.arch == .wasm32) {
 		const zbind = @import("lib/zbind-wasm.zig");
@@ -33,6 +35,8 @@ pub fn build(
 		builder: *std.Build,
 		root: ?[]const u8 = null,
 		main: []const u8,
+		target: ?ResolvedTarget = null,
+		optimize: ?std.builtin.OptimizeMode = null,
 		npm: ?[]const u8 = null,
 		out: []const u8
 	}
@@ -40,8 +44,8 @@ pub fn build(
 	const builder = config.builder;
 	const root = config.root orelse builder.build_root.path orelse ".";
 	const name = std.fs.path.basename(config.out);
-	const target = builder.standardTargetOptions(.{});
-	const optimize = builder.standardOptimizeOption(.{});
+	const target: ResolvedTarget = config.target orelse builder.standardTargetOptions(.{});
+	const optimize: std.builtin.OptimizeMode = config.optimize orelse builder.standardOptimizeOption(.{});
 
 	const zbind = builder.createModule(if(@hasField(std.Build.Module, "root_source_file")) .{
 		.root_source_file = .{ //
@@ -61,7 +65,8 @@ pub fn build(
 		.name = name,
 		.root_source_file = .{ .path = config.main },
 		.target = target,
-		.optimize = optimize
+		.optimize = optimize,
+		.single_threaded = true
 	};
 
 	const lib = if(use_executable) builder.addExecutable(options) else builder.addSharedLibrary(options);
