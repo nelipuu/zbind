@@ -4,7 +4,7 @@
 
 `zbind` generates TypeScript bindings for calling Zig code compiled to native code or Wasm, in Node.js or Bun or browsers.
 
-Supported Zig versions are 0.11.0 - 0.13.0 (and at least some 0.14.0 dev versions as well)
+Supported Zig versions are 0.11.0 - 0.13.0 (and at least some 0.14.0 dev versions as well).
 Zig 0.13.0 seems to have an issue linking with C++ code when targeting Wasm, that has been fixed in later development versions.
 
 Example Zig code [`lib/main.zig`](example/lib/main.zig):
@@ -100,3 +100,7 @@ When compiled, `zbind.zig` analyzes argument and return types of Zig functions a
 The `zbind` command line tool loads the compiled binary and queries its metadata endpoints to generate a TypeScript wrapper for each Zig function which calls it automatically converting types. The tool writes out TypeScript source code defining and exporting the wrapper functions.
 
 After importing the generated file in your own TypeScript code and making the first call to Zig code through it, the bindings load the compiled binary.
+
+# License
+
+0BSD, which means use as you wish and no need to mention this project or its author. Consider it public domain in practice.
