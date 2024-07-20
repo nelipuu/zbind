@@ -5,6 +5,7 @@
 `zbind` generates TypeScript bindings for calling Zig code compiled to native code or Wasm, in Node.js or Bun or browsers.
 
 Supported Zig versions are 0.11.0 - 0.12.0 (possibly later as well)
+Zig 0.13.0 seems to have an issue linking with C++ code when targeting Wasm, that has been fixed in later development versions.
 
 Example Zig code [`lib/main.zig`](example/lib/main.zig):
 
@@ -40,11 +41,13 @@ const std = @import("std");
 const zbind = @import("node_modules/zbind/zbind.zig");
 
 pub fn build(builder: *std.Build) !void {
-    _ = try zbind.build(.{ //
+    const lib = try zbind.build(.{ //
         .builder = builder,
         .main = "lib/main.zig",
         .out = "dist/addon"
     });
+
+    lib.linkLibC();
 }
 ```
 
