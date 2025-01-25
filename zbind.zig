@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-pub const ResolvedTarget = @typeInfo(@TypeOf(std.Build.standardTargetOptions)).Fn.return_type.?;
-pub const BuilderPath = if(!@hasField(std.Build, "path") and !@hasDecl(std.Build, "path")) std.Build.LazyPath else @typeInfo(@TypeOf(std.Build.path)).Fn.return_type.?;
+pub const ResolvedTarget = @typeInfo(@TypeOf(std.Build.standardTargetOptions)).@"fn".return_type.?;
+pub const BuilderPath = if(!@hasField(std.Build, "path") and !@hasDecl(std.Build, "path")) std.Build.LazyPath else @typeInfo(@TypeOf(std.Build.path)).@"fn".return_type.?;
 
 fn builder_path(builder: *std.Build, path: []const u8) BuilderPath {
 	return if(!@hasField(std.Build, "path") and !@hasDecl(std.Build, "path")) .{ .path = path } else builder.path(path);
@@ -13,25 +13,25 @@ pub fn init(comptime API: type) void {
 		const zbind = @import("lib/zbind-wasm.zig");
 
 		// Support linking with libc.
-		@export(struct {
+		@export(&(struct {
 			pub fn main(_: c_int, _: *anyopaque) callconv(.C) c_int {
 				return 0;
 			}
-		}.main, .{ .name = "main" });
+		}.main), .{ .name = "main" });
 
-		@export(struct {
+		@export(&(struct {
 			pub fn init(base: [*c]u8) callconv(.C) u32 {
 				return zbind.init(API, base);
 			}
-		}.init, .{ .name = "init" });
+		}.init), .{ .name = "init" });
 	} else {
 		const zbind = @import("lib/zbind-napi.zig");
 
-		@export(struct {
+		@export(&(struct {
 			pub fn register(env: zbind.Env, exports: zbind.Value) callconv(.C) zbind.Value {
 				return zbind.init(env, exports, API);
 			}
-		}.register, .{ .name = "napi_register_module_v1" });
+		}.register), .{ .name = "napi_register_module_v1" });
 	}
 }
 
@@ -66,15 +66,20 @@ pub fn build(
 
 	const arch = (if(@hasField(@TypeOf(target), "cpu_arch")) target else target.query).cpu_arch;
 	const use_executable = (arch == .wasm32) and builtin.zig_version.order(std.SemanticVersion.parse("0.12.0") catch unreachable) != .lt;
-	const options = .{ //
+
+	const lib = if(use_executable) builder.addExecutable(.{
 		.name = name,
 		.root_source_file = builder_path(builder, config.main),
 		.target = target,
 		.optimize = optimize,
 		.single_threaded = true
-	};
-
-	const lib = if(use_executable) builder.addExecutable(options) else builder.addSharedLibrary(options);
+	}) else builder.addSharedLibrary(.{
+		.name = name,
+		.root_source_file = builder_path(builder, config.main),
+		.target = target,
+		.optimize = optimize,
+		.single_threaded = true
+	});
 
 	if(arch == .wasm32) {
 		lib.export_memory = true;

@@ -2,14 +2,14 @@ const callback = @import("callback.zig").callback;
 
 pub fn WireType(comptime Type: type, comptime slot: u32) type {
 	return switch(@typeInfo(Type)) {
-		.Void => struct {
+		.@"void" => struct {
 			pub const count = 0;
 
 			pub inline fn fromStack(_: [*]const f64) Type {}
 
 			pub inline fn toStack(_: Type, _: [*]f64) void {}
 		},
-		.Bool => struct {
+		.@"bool" => struct {
 			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
@@ -21,7 +21,7 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 			}
 		},
 
-		.Int => struct {
+		.@"int" => struct {
 			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
@@ -34,7 +34,7 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 			}
 		},
 
-		.Float => struct {
+		.@"float" => struct {
 			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
@@ -46,8 +46,8 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 			}
 		},
 
-		.Pointer => |info| switch(info.size) {
-			.Slice => struct {
+		.@"pointer" => |info| switch(info.size) {
+			.@"slice" => struct {
 				pub const count = 2;
 
 				pub inline fn fromStack(wire: [*]const f64) Type {
@@ -65,9 +65,9 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 			else => {
 				const child_info = @typeInfo(info.child);
 
-				if(child_info == .Fn) {
-					const args = child_info.Fn.params;
-					const Return = child_info.Fn.return_type.?;
+				if(child_info == .@"fn") {
+					const args = child_info.@"fn".params;
+					const Return = child_info.@"fn".return_type.?;
 
 					return struct {
 						pub const count = 0;
@@ -109,7 +109,7 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 
 		// .Array =>
 
-		.Struct => struct {
+		.@"struct" => struct {
 			pub const count = 1;
 
 			pub inline fn fromStack(wire: [*]const f64) Type {
@@ -125,7 +125,7 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 			}
 		},
 
-		.Optional => |info| {
+		.@"optional" => |info| {
 			const Child = WireType(info.child, slot);
 
 			return struct {
@@ -146,7 +146,7 @@ pub fn WireType(comptime Type: type, comptime slot: u32) type {
 				}
 			};
 		},
-		.ErrorUnion => |info| {
+		.@"error_union" => |info| {
 			return WireType(info.child, slot);
 		},
 

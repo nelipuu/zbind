@@ -7,7 +7,7 @@ const WireType = @import("wiretype.zig").WireType;
 pub var stack_top: u32 = 0;
 
 pub fn FunctionWrapper(comptime func: anytype, comptime slot: u32) !type {
-	const info = @typeInfo(@TypeOf(func)).Fn;
+	const info = @typeInfo(@TypeOf(func)).@"fn";
 	const Result = info.return_type orelse void;
 
 	comptime var arg_types: []const *const typeid.TypeSpec = &[_]*const typeid.TypeSpec{typeid.typeId(Result)};
@@ -33,7 +33,7 @@ pub fn FunctionWrapper(comptime func: anytype, comptime slot: u32) !type {
 			arg_fields = arg_fields ++ ([_]std.builtin.Type.StructField{.{ //
 				.name = std.fmt.comptimePrint("{}", .{arg_num}),
 				.type = param.type.?,
-				.default_value = null,
+				.default_value_ptr = null,
 				.is_comptime = false,
 				.alignment = @alignOf(param.type.?)
 			}});
@@ -42,7 +42,7 @@ pub fn FunctionWrapper(comptime func: anytype, comptime slot: u32) !type {
 
 	// Tuple type capable of holding all Zig parameters of the called Zig function, for passing to @call.
 	const Args = @Type(.{
-		.Struct = .{ //
+		.@"struct" = .{ //
 			.layout = if(@hasField(std.builtin.Type.ContainerLayout, "Auto")) .Auto else .auto,
 			.fields = arg_fields,
 			.decls = &.{},
@@ -87,11 +87,11 @@ pub fn getMethods(comptime API: type, comptime Caller: type) []const MethodType 
 	comptime var slot = 0;
 	comptime var methods: []const MethodType = &[_]MethodType{};
 
-	comptime for(@typeInfo(API).Struct.decls) |decl| {
+	comptime for(@typeInfo(API).@"struct".decls) |decl| {
 		const field = @field(API, decl.name);
 		const field_info: std.builtin.Type = @typeInfo(@TypeOf(field));
 
-		if(field_info == .Fn) {
+		if(field_info == .@"fn") {
 			const Wrapper = FunctionWrapper(field, slot) catch continue;
 
 			methods = methods ++ [_]MethodType{.{ //

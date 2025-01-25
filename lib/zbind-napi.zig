@@ -127,7 +127,7 @@ pub fn init(env: Env, exports: Value, comptime API: type) Value {
 	const Interface = Module(API);
 	comptime var desc: []const napi.napi_property_descriptor = &[_]napi.napi_property_descriptor{};
 
-	comptime for(@typeInfo(Interface).Struct.decls) |decl| {
+	comptime for(@typeInfo(Interface).@"struct".decls) |decl| {
 		desc = desc ++ [_]napi.napi_property_descriptor{.{ //
 			.utf8name = &cstring(decl.name),
 			.name = null,

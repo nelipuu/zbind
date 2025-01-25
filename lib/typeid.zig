@@ -52,28 +52,28 @@ pub const TypeSpec = struct { //
 pub fn typeId(comptime Type: type) *const TypeSpec {
 	return &(struct {
 		pub const spec: TypeSpec = switch(@typeInfo(Type)) {
-			.Type => .{ .kind = .Type },
-			.Void => .{ .kind = .Void },
-			.Bool => .{ .kind = .Bool },
+			.@"type" => .{ .kind = .Type },
+			.@"void" => .{ .kind = .Void },
+			.@"bool" => .{ .kind = .Bool },
 
-			.Int => |info| .{ .kind = .Int, .len = info.bits, .flags = if(info.signedness == .signed) 1 else 0 },
-			.Float => |info| .{ .kind = .Float, .len = info.bits },
+			.@"int" => |info| .{ .kind = .Int, .len = info.bits, .flags = if(info.signedness == .signed) 1 else 0 },
+			.@"float" => |info| .{ .kind = .Float, .len = info.bits },
 
-			.Pointer => |info| switch(info.size) {
-				.Slice => .{ .kind = .Slice, .child = typeId(info.child), .flags = if(info.is_const) 1 else 0 },
+			.@"pointer" => |info| switch(info.size) {
+				.@"slice" => .{ .kind = .Slice, .child = typeId(info.child), .flags = if(info.is_const) 1 else 0 },
 				else => .{ .kind = .Pointer, .child = typeId(info.child), .flags = if(info.is_const) 1 else 0 }
 			},
-			.Array => |info| .{ .kind = .Array, .child = typeId(info.child), .len = info.len },
+			.@"array" => |info| .{ .kind = .Array, .child = typeId(info.child), .len = info.len },
 
 			// Store name in case type ID isn't completely unique.
-			.Struct => .{ .kind = .Struct, .child = @typeName(Type), .len = @sizeOf(Type), .flags = @truncate(@typeName(Type).len) },
+			.@"struct" => .{ .kind = .Struct, .child = @typeName(Type), .len = @sizeOf(Type), .flags = @truncate(@typeName(Type).len) },
 
-			.Optional => |info| .{ .kind = .Optional, .child = typeId(info.child) },
-			.ErrorUnion => |info| .{ .kind = .ErrorUnion, .child = typeId(info.payload) },
+			.@"optional" => |info| .{ .kind = .Optional, .child = typeId(info.child) },
+			.@"error_union" => |info| .{ .kind = .ErrorUnion, .child = typeId(info.payload) },
 
 			// TODO
-			.Fn => .{ .kind = .Fn },
-			.Opaque => .{ .kind = .Opaque },
+			.@"fn" => .{ .kind = .Fn },
+			.@"opaque" => .{ .kind = .Opaque },
 
 			else => .{ .kind = .Unknown }
 		};
